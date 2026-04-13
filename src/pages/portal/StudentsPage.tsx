@@ -33,6 +33,7 @@ export default function StudentsPage() {
   const [editFormData, setEditFormData] = useState<any>({});
   const [classTeachers, setClassTeachers] = useState<any[]>([]);
   const [classFeeDefaults, setClassFeeDefaults] = useState<Record<string, number>>({});
+  const [credentialsDialog, setCredentialsDialog] = useState<{ admissionNumber: string; password: string; studentName: string } | null>(null);
   const { staff } = useSchool();
 
   useEffect(() => {
