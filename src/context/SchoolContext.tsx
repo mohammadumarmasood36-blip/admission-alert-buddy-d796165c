@@ -335,9 +335,9 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           });
           if (smsResponse.error) {
             console.error("SMS send failed:", smsResponse.error);
-            toast.warning(`Student added (Admission No: ${admissionNumber}) but SMS could not be sent. Please share credentials manually.`);
+            toast.warning(`Student added (Admission No: ${admissionNumber}) but WhatsApp message could not be sent. Please share credentials manually.`);
           } else {
-            toast.success(`Student added — Admission No: ${admissionNumber}. Credentials sent via SMS to ${parentPhone}.`);
+            toast.success(`Student added — Admission No: ${admissionNumber}. Credentials sent via WhatsApp to ${parentPhone}.`);
           }
         } catch (smsErr) {
           console.error("SMS send error:", smsErr);
