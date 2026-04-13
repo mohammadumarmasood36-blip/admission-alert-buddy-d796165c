@@ -119,7 +119,7 @@ export default function StudentsPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!formData.name.trim() || !formData.feeAmount) {
       toast.error("Please fill required fields (Name & Fee Amount)");
       return;
@@ -134,7 +134,7 @@ export default function StudentsPage() {
       return;
     }
 
-    addStudent({
+    const result = await addStudent({
       name: formData.name.trim(),
       className: formData.className,
       section: autoSection,
@@ -153,7 +153,6 @@ export default function StudentsPage() {
       parentPassword: formData.parentPassword || undefined,
     });
 
-    toast.success(`${formData.name} enrolled in Class ${formData.className} — Section ${autoSection}`);
     setFormData({
       name: "", className: "Nursery", feeAmount: "", photoFile: "",
       fatherName: "", fatherMobile: "", fatherEmail: "",
@@ -162,6 +161,10 @@ export default function StudentsPage() {
       parentPassword: "",
     });
     setAddOpen(false);
+
+    if (result) {
+      setCredentialsDialog(result);
+    }
   };
 
   const handleAddSection = () => {
