@@ -20,58 +20,62 @@ serve(async (req) => {
       );
     }
 
-    const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-    const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-    const twilioPhoneNumber = Deno.env.get("TWILIO_PHONE_NUMBER");
+    const whatsappToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+    const whatsappPhoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
 
-    if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
-      console.error("Twilio credentials not configured");
+    if (!whatsappToken || !whatsappPhoneNumberId) {
+      console.error("WhatsApp credentials not configured");
       return new Response(
-        JSON.stringify({ error: "SMS service not configured. Please add Twilio credentials." }),
+        JSON.stringify({ error: "WhatsApp service not configured. Please add WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const message = `Dear Parent,\n\nYour child ${studentName || ""} has been enrolled at ${schoolName || "our school"}.\n\nLogin Credentials:\nAdmission No: ${admissionNumber}\nPassword: ${password}\n\nPlease use these credentials to login to the Parent Portal.\n\nThank you!`;
-
-    // Clean phone number - ensure it has country code
-    let formattedPhone = phoneNumber.replace(/\s+/g, "");
-    if (!formattedPhone.startsWith("+")) {
-      formattedPhone = "+91" + formattedPhone; // Default to India country code
+    // Clean phone number - ensure it has country code without +
+    let formattedPhone = phoneNumber.replace(/[\s\-\(\)]/g, "");
+    if (formattedPhone.startsWith("+")) {
+      formattedPhone = formattedPhone.substring(1);
+    }
+    if (!formattedPhone.startsWith("91")) {
+      formattedPhone = "91" + formattedPhone; // Default to India country code
     }
 
-    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
-    const authHeader = btoa(`${twilioAccountSid}:${twilioAuthToken}`);
+    const message = `Dear Parent,\n\nYour child ${studentName || ""} has been enrolled at ${schoolName || "our school"}.\n\nLogin Credentials:\nAdmission No: ${admissionNumber}\nPassword: ${password}\n\nPlease use these credentials to login to the Parent Portal.\n\nThank you!`;
 
-    const response = await fetch(twilioUrl, {
+    const whatsappUrl = `https://graph.facebook.com/v21.0/${whatsappPhoneNumberId}/messages`;
+
+    const response = await fetch(whatsappUrl, {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${authHeader}`,
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": `Bearer ${whatsappToken}`,
+        "Content-Type": "application/json",
       },
-      body: new URLSearchParams({
-        To: formattedPhone,
-        From: twilioPhoneNumber,
-        Body: message,
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: formattedPhone,
+        type: "text",
+        text: {
+          body: message,
+        },
       }),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Twilio API error:", JSON.stringify(data));
+      console.error("WhatsApp API error:", JSON.stringify(data));
       return new Response(
-        JSON.stringify({ error: "Failed to send SMS", details: data.message }),
+        JSON.stringify({ error: "Failed to send WhatsApp message", details: data.error?.message || JSON.stringify(data) }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
-      JSON.stringify({ success: true, messageSid: data.sid }),
+      JSON.stringify({ success: true, messageId: data.messages?.[0]?.id }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("SMS function error:", err);
+    console.error("WhatsApp function error:", err);
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
