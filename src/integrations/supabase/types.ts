@@ -218,6 +218,44 @@ export type Database = {
           },
         ]
       }
+      exam_schedules: {
+        Row: {
+          created_at: string | null
+          date: string | null
+          end_time: string | null
+          examination_id: string | null
+          id: string
+          start_time: string | null
+          subject: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date?: string | null
+          end_time?: string | null
+          examination_id?: string | null
+          id?: string
+          start_time?: string | null
+          subject?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string | null
+          end_time?: string | null
+          examination_id?: string | null
+          id?: string
+          start_time?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_schedules_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exam_seating_plans: {
         Row: {
           capacity: number | null
