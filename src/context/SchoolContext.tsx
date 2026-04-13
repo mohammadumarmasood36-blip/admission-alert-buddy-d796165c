@@ -230,7 +230,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         "Login Password": data.loginPassword || null,
         join_date: data.joinDate || new Date().toISOString().split("T")[0],
         salary_paid: false,
-      }).select().single();
+      }]).select().single();
       if (error) throw error;
       if (result) setStaff((prev) => [...prev, mapStaffRow(result)]);
       toast.success("Staff added successfully");
