@@ -6,11 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, GraduationCap, Users, Trash2, Settings, CreditCard, Bus, Upload, Pencil, UserCheck } from "lucide-react";
+import { Plus, GraduationCap, Users, Trash2, Settings, CreditCard, Bus, Upload, Pencil, UserCheck, Copy, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import StudentIdCard from "@/components/portal/StudentIdCard";
@@ -33,6 +33,7 @@ export default function StudentsPage() {
   const [editFormData, setEditFormData] = useState<any>({});
   const [classTeachers, setClassTeachers] = useState<any[]>([]);
   const [classFeeDefaults, setClassFeeDefaults] = useState<Record<string, number>>({});
+  const [credentialsDialog, setCredentialsDialog] = useState<{ admissionNumber: string; password: string; studentName: string } | null>(null);
   const { staff } = useSchool();
 
   useEffect(() => {
@@ -118,7 +119,7 @@ export default function StudentsPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!formData.name.trim() || !formData.feeAmount) {
       toast.error("Please fill required fields (Name & Fee Amount)");
       return;
@@ -133,7 +134,7 @@ export default function StudentsPage() {
       return;
     }
 
-    addStudent({
+    const result = await addStudent({
       name: formData.name.trim(),
       className: formData.className,
       section: autoSection,
@@ -152,7 +153,6 @@ export default function StudentsPage() {
       parentPassword: formData.parentPassword || undefined,
     });
 
-    toast.success(`${formData.name} enrolled in Class ${formData.className} — Section ${autoSection}`);
     setFormData({
       name: "", className: "Nursery", feeAmount: "", photoFile: "",
       fatherName: "", fatherMobile: "", fatherEmail: "",
@@ -161,6 +161,10 @@ export default function StudentsPage() {
       parentPassword: "",
     });
     setAddOpen(false);
+
+    if (result) {
+      setCredentialsDialog(result);
+    }
   };
 
   const handleAddSection = () => {
@@ -697,6 +701,97 @@ export default function StudentsPage() {
             </div>
             <Button onClick={handleEditSave} className="w-full">Save Changes</Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credentials Dialog */}
+      <Dialog open={!!credentialsDialog} onOpenChange={(open) => !open && setCredentialsDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <UserCheck className="h-5 w-5 text-primary" />
+              Student Enrolled Successfully
+            </DialogTitle>
+          </DialogHeader>
+          {credentialsDialog && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Share these login credentials with the parent of <strong>{credentialsDialog.studentName}</strong>:
+              </p>
+              <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Admission Number</p>
+                    <p className="text-lg font-bold tracking-wider">{credentialsDialog.admissionNumber}</p>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      navigator.clipboard.writeText(credentialsDialog.admissionNumber);
+                      toast.success("Admission number copied");
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Password</p>
+                    <p className="text-lg font-bold tracking-wider">{credentialsDialog.password}</p>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      navigator.clipboard.writeText(credentialsDialog.password);
+                      toast.success("Password copied");
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `Student: ${credentialsDialog.studentName}\nAdmission No: ${credentialsDialog.admissionNumber}\nPassword: ${credentialsDialog.password}`
+                    );
+                    toast.success("All credentials copied to clipboard");
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" /> Copy All
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    const printWindow = window.open("", "_blank");
+                    if (printWindow) {
+                      printWindow.document.write(`
+                        <html><head><title>Student Credentials</title>
+                        <style>body{font-family:Arial,sans-serif;padding:40px;text-align:center}
+                        h2{margin-bottom:30px}.field{margin:15px 0;font-size:18px}
+                        .label{color:#666;font-size:13px}.value{font-size:24px;font-weight:bold;letter-spacing:2px}</style>
+                        </head><body>
+                        <h2>Parent Portal Login Credentials</h2>
+                        <p style="color:#666">Student: <strong>${credentialsDialog.studentName}</strong></p>
+                        <div class="field"><div class="label">Admission Number</div><div class="value">${credentialsDialog.admissionNumber}</div></div>
+                        <div class="field"><div class="label">Password</div><div class="value">${credentialsDialog.password}</div></div>
+                        <p style="margin-top:30px;color:#999;font-size:12px">Please keep these credentials safe.</p>
+                        </body></html>`);
+                      printWindow.document.close();
+                      printWindow.print();
+                    }
+                  }}
+                >
+                  <Printer className="h-4 w-4 mr-2" /> Print
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </DashboardLayout>
