@@ -282,7 +282,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addStudent = async (data: Omit<Student, "id" | "admissionNumber" | "rollNumber" | "feePaid" | "enrollDate" | "installments" | "paymentMode">) => {
+  const addStudent = async (data: Omit<Student, "id" | "admissionNumber" | "rollNumber" | "feePaid" | "enrollDate" | "installments" | "paymentMode">): Promise<{ admissionNumber: string; password: string; studentName: string } | null> => {
     try {
       // Get next admission number
       const counterRes = await supabase.from("app_settings").select("value").eq("key", "admission_counter").single();
@@ -320,35 +320,12 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
       if (result) setStudents((prev) => [...prev, mapStudentRow(result)]);
 
-      // Send WhatsApp notification to parent with admission credentials
-      const parentPhone = data.fatherMobile || data.motherMobile;
-      if (parentPhone && data.parentPassword) {
-        try {
-          const smsResponse = await supabase.functions.invoke("send-sms", {
-            body: {
-              phoneNumber: parentPhone,
-              admissionNumber,
-              password: data.parentPassword,
-              studentName: data.name,
-              schoolName: "Param Gyan Public School",
-            },
-          });
-          if (smsResponse.error) {
-            console.error("SMS send failed:", smsResponse.error);
-            toast.warning(`Student added (Admission No: ${admissionNumber}) but WhatsApp message could not be sent. Please share credentials manually.`);
-          } else {
-            toast.success(`Student added — Admission No: ${admissionNumber}. Credentials sent via WhatsApp to ${parentPhone}.`);
-          }
-        } catch (smsErr) {
-          console.error("SMS send error:", smsErr);
-          toast.warning(`Student added (Admission No: ${admissionNumber}) but WhatsApp message failed. Share credentials manually.`);
-        }
-      } else {
-        toast.success(`Student added — Admission No: ${admissionNumber}. No parent mobile provided for WhatsApp notification.`);
-      }
+      toast.success(`Student added — Admission No: ${admissionNumber}`);
+      return { admissionNumber, password: data.parentPassword || "", studentName: data.name };
     } catch (err: any) {
       console.error("Failed to add student:", err);
       toast.error("Failed to add student");
+      return null;
     }
   };
 
