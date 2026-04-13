@@ -134,33 +134,39 @@ export type Database = {
       }
       exam_results: {
         Row: {
+          admission_no: string | null
           created_at: string | null
           examination_id: string | null
           grade: string | null
           id: string
-          marks: number | null
+          marks_obtained: number | null
           max_marks: number | null
           student_id: string | null
+          student_name: string | null
           subject: string | null
         }
         Insert: {
+          admission_no?: string | null
           created_at?: string | null
           examination_id?: string | null
           grade?: string | null
           id?: string
-          marks?: number | null
+          marks_obtained?: number | null
           max_marks?: number | null
           student_id?: string | null
+          student_name?: string | null
           subject?: string | null
         }
         Update: {
+          admission_no?: string | null
           created_at?: string | null
           examination_id?: string | null
           grade?: string | null
           id?: string
-          marks?: number | null
+          marks_obtained?: number | null
           max_marks?: number | null
           student_id?: string | null
+          student_name?: string | null
           subject?: string | null
         }
         Relationships: [
@@ -220,29 +226,35 @@ export type Database = {
       }
       exam_schedules: {
         Row: {
+          class: string | null
           created_at: string | null
           date: string | null
           end_time: string | null
           examination_id: string | null
           id: string
+          room: string | null
           start_time: string | null
           subject: string | null
         }
         Insert: {
+          class?: string | null
           created_at?: string | null
           date?: string | null
           end_time?: string | null
           examination_id?: string | null
           id?: string
+          room?: string | null
           start_time?: string | null
           subject?: string | null
         }
         Update: {
+          class?: string | null
           created_at?: string | null
           date?: string | null
           end_time?: string | null
           examination_id?: string | null
           id?: string
+          room?: string | null
           start_time?: string | null
           subject?: string | null
         }
