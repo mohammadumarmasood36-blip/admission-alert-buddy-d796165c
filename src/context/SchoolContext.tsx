@@ -91,7 +91,7 @@ interface SchoolContextType {
   removeStaff: (id: string) => void;
   updateStaffSalary: (id: string, salary: number) => void;
   updateStaff: (id: string, updates: Partial<StaffMember>) => void;
-  addStudent: (data: Omit<Student, "id" | "admissionNumber" | "rollNumber" | "feePaid" | "enrollDate" | "installments" | "paymentMode">) => void;
+  addStudent: (data: Omit<Student, "id" | "admissionNumber" | "rollNumber" | "feePaid" | "enrollDate" | "installments" | "paymentMode">) => Promise<{ admissionNumber: string; password: string; studentName: string } | null>;
   removeStudent: (id: string) => void;
   updateStudent: (id: string, updates: Partial<Student>) => void;
   submitFee: (studentId: string) => void;
