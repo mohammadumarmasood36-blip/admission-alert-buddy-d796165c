@@ -1,0 +1,1 @@
+ALTER TABLE public.fee_payments ADD COLUMN IF NOT EXISTS transaction_id text;

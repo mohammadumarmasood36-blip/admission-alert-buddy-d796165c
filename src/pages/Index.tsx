@@ -1,16 +1,58 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useCallback } from "react";
+import { AnimatePresence } from "framer-motion";
+import TopBar from "@/components/TopBar";
+import Navbar from "@/components/Navbar";
+import HeroSection from "@/components/HeroSection";
+import AdmissionTicker from "@/components/AdmissionTicker";
+import WhyChooseUs from "@/components/WhyChooseUs";
+import AboutSection from "@/components/AboutSection";
+import VisionMission from "@/components/VisionMission";
+import GoalsSection from "@/components/GoalsSection";
+import DirectorMessage from "@/components/DirectorMessage";
+import PrincipalMessage from "@/components/PrincipalMessage";
+import AcademicsSection from "@/components/AcademicsSection";
+import FeeStructure from "@/components/FeeStructure";
+import TestimonialsSection from "@/components/TestimonialsSection";
+import GallerySection from "@/components/GallerySection";
+import FAQSection from "@/components/FAQSection";
+import ContactSection from "@/components/ContactSection";
+import Footer from "@/components/Footer";
+import SplashScreen from "@/components/SplashScreen";
+import ScrollReveal from "@/components/ScrollReveal";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const [showSplash, setShowSplash] = useState(true);
+  const handleSplashComplete = useCallback(() => setShowSplash(false), []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
-    </div>
+    <>
+      <AnimatePresence>
+        {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+      </AnimatePresence>
+
+      <div className="min-h-screen">
+        <TopBar />
+        <Navbar />
+        <HeroSection />
+        <AdmissionTicker />
+
+        <ScrollReveal direction="up"><WhyChooseUs /></ScrollReveal>
+        <ScrollReveal direction="left"><AboutSection /></ScrollReveal>
+        <ScrollReveal direction="right"><VisionMission /></ScrollReveal>
+        <ScrollReveal direction="up"><GoalsSection /></ScrollReveal>
+        <ScrollReveal direction="left"><DirectorMessage /></ScrollReveal>
+        <ScrollReveal direction="right"><PrincipalMessage /></ScrollReveal>
+        <ScrollReveal direction="up"><AcademicsSection /></ScrollReveal>
+        <ScrollReveal direction="up" delay={0.1}><FeeStructure /></ScrollReveal>
+        <ScrollReveal direction="up"><TestimonialsSection /></ScrollReveal>
+        <ScrollReveal direction="up"><GallerySection /></ScrollReveal>
+        <ScrollReveal direction="up"><FAQSection /></ScrollReveal>
+        <ScrollReveal direction="up"><ContactSection /></ScrollReveal>
+
+        <Footer />
+      </div>
+    </>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
