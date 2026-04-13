@@ -320,7 +320,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
       if (result) setStudents((prev) => [...prev, mapStudentRow(result)]);
 
-      // Send SMS notification to parent with admission credentials
+      // Send WhatsApp notification to parent with admission credentials
       const parentPhone = data.fatherMobile || data.motherMobile;
       if (parentPhone && data.parentPassword) {
         try {
@@ -341,10 +341,10 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
           }
         } catch (smsErr) {
           console.error("SMS send error:", smsErr);
-          toast.warning(`Student added (Admission No: ${admissionNumber}) but SMS failed. Share credentials manually.`);
+          toast.warning(`Student added (Admission No: ${admissionNumber}) but WhatsApp message failed. Share credentials manually.`);
         }
       } else {
-        toast.success(`Student added — Admission No: ${admissionNumber}. No parent mobile provided for SMS.`);
+        toast.success(`Student added — Admission No: ${admissionNumber}. No parent mobile provided for WhatsApp notification.`);
       }
     } catch (err: any) {
       console.error("Failed to add student:", err);
