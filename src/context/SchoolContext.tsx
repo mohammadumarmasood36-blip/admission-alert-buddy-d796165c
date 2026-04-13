@@ -219,18 +219,18 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
   const addStaff = async (data: Omit<StaffMember, "id" | "salaryPaid"> & { loginPassword?: string }) => {
     try {
       const dbRole = ROLE_MAP[data.role] || data.role;
-      const { data: result, error } = await supabase.from("staff").insert({
+      const { data: result, error } = await supabase.from("staff").insert([{
         "Full Name": data.name,
         Role: dbRole,
         "Monthly Salary": data.salary,
-        "Mobile number": data.mobileNumber ? Number(data.mobileNumber) : null,
+        "Mobile number": data.mobileNumber || null,
         Photo: data.photoFile || null,
         Resume: data.resumeFile || null,
         teaching_classes: data.teachingClasses,
         "Login Password": data.loginPassword || null,
         join_date: data.joinDate || new Date().toISOString().split("T")[0],
         salary_paid: false,
-      }).select().single();
+      }]).select().single();
       if (error) throw error;
       if (result) setStaff((prev) => [...prev, mapStaffRow(result)]);
       toast.success("Staff added successfully");

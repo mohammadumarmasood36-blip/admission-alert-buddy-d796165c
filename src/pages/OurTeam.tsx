@@ -61,7 +61,7 @@ const OurTeam = () => {
             name: s["Full Name"],
             photo: s.Photo,
             joinDate: s.join_date,
-            teachingClasses: s.teaching_classes,
+            teachingClasses: (s.teaching_classes as string[]) || [],
           }))
         );
       }
