@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, GraduationCap, Users, Trash2, Settings, CreditCard, Bus, Upload, Pencil, UserCheck, Copy, Printer } from "lucide-react";
+import { Plus, GraduationCap, Users, Trash2, Settings, CreditCard, Bus, Upload, Pencil, UserCheck, Copy, Printer, MessageCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import StudentIdCard from "@/components/portal/StudentIdCard";
@@ -764,6 +764,29 @@ export default function StudentsPage() {
                   }}
                 >
                   <Copy className="h-4 w-4 mr-2" /> Copy All
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    const student = students.find(s => s.admissionNumber === credentialsDialog.admissionNumber);
+                    const phone = student?.fatherMobile || student?.motherMobile || "";
+                    if (!phone) {
+                      toast.error("No parent mobile number found for this student");
+                      return;
+                    }
+                    const message = encodeURIComponent(
+                      `Dear Parent,\n\nYour child ${credentialsDialog.studentName} has been enrolled.\n\nLogin Credentials:\nAdmission No: ${credentialsDialog.admissionNumber}\nPassword: ${credentialsDialog.password}\n\nPlease use these to login to the Parent Portal.\n\nThank you!`
+                    );
+                    let formattedPhone = phone.replace(/[\s\-\(\)]/g, "");
+                    if (!formattedPhone.startsWith("+")) {
+                      formattedPhone = "+91" + formattedPhone;
+                    }
+                    window.open(`https://wa.me/${formattedPhone.replace("+", "")}?text=${message}`, "_blank");
+                    toast.success("Opening WhatsApp...");
+                  }}
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" /> WhatsApp
                 </Button>
                 <Button
                   className="flex-1"
