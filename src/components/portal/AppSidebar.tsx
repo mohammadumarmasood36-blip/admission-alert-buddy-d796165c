@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, GraduationCap, Banknote, Wallet, School, Menu, X, LogOut, Globe,
-  ClipboardList, CalendarDays, UserCheck, BookOpen, Bell,
+  ClipboardList, CalendarDays, UserCheck, BookOpen, Bell, Download,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
