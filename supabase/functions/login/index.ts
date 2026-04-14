@@ -55,7 +55,7 @@ serve(async (req) => {
       const { data: staffList, error } = await supabase
         .from("staff")
         .select("*")
-        .eq("Mobile number", parseInt(identifier, 10))
+        .eq("Mobile number", identifier)
         .limit(1);
 
       if (error || !staffList || staffList.length === 0) {
