@@ -56,6 +56,51 @@ export default function ParentDashboard() {
     load();
   }, [myChildren, session]);
 
+  // Real-time notifications for attendance & notices
+  const [notifications, setNotifications] = useState<Array<{ id: string; message: string; time: Date; type: "attendance" | "notice" }>>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  useEffect(() => {
+    const childIds = myChildren.map((c) => c.id);
+    if (childIds.length === 0) return;
+
+    const channel = supabase
+      .channel("parent-notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "attendance" },
+        (payload) => {
+          const record = payload.new as any;
+          if (childIds.includes(record.student_id)) {
+            const child = myChildren.find((c) => c.id === record.student_id);
+            const msg = `${child?.name || "Your child"} marked ${record.status} on ${record.date}`;
+            setNotifications((prev) => [{ id: crypto.randomUUID(), message: msg, time: new Date(), type: "attendance" }, ...prev]);
+            setAttendance((prev) => [...prev, record]);
+            toast.info(msg, { icon: "📋" });
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notices" },
+        (payload) => {
+          const record = payload.new as any;
+          const child = myChildren[0];
+          const isRelevant = record.target_type === "all" || 
+            (record.target_type === "class" && child && record.target_values?.includes(child.className));
+          if (isRelevant) {
+            const msg = `New Notice: ${record.title}`;
+            setNotifications((prev) => [{ id: crypto.randomUUID(), message: msg, time: new Date(), type: "notice" }, ...prev]);
+            setNotices((prev) => [record, ...prev]);
+            toast.info(msg, { icon: "🔔" });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [myChildren]);
+
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
 
   useEffect(() => {
