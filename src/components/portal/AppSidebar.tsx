@@ -99,6 +99,14 @@ export default function AppSidebar() {
             </Link>
           );
         })}
+        <Link
+          to="/install"
+          onClick={() => setMobileOpen(false)}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground mt-2 border border-dashed border-sidebar-border"
+        >
+          <Download className="w-4.5 h-4.5" />
+          Install App
+        </Link>
       </nav>
 
       <div className="px-4 py-3 border-t border-sidebar-border">
