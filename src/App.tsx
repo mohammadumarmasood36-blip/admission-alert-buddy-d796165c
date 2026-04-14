@@ -22,6 +22,7 @@ import ExaminationsPage from "./pages/portal/ExaminationsPage";
 import ClassTeacherPage from "./pages/portal/ClassTeacherPage";
 import SubjectAssignmentPage from "./pages/portal/SubjectAssignmentPage";
 import NoticesPage from "./pages/portal/NoticesPage";
+import InstallApp from "./pages/InstallApp";
 
 const queryClient = new QueryClient();
 
@@ -87,6 +88,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/our-team" element={<OurTeam />} />
             <Route path="/admission-form" element={<AdmissionForm />} />
+            <Route path="/install" element={<InstallApp />} />
             <Route path="/portal/*" element={<PortalRoutes />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
