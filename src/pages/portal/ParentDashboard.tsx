@@ -167,9 +167,46 @@ export default function ParentDashboard() {
               <h1 className="font-display font-bold text-lg">{user?.name}</h1>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 border-white/30 text-white hover:bg-white/10 bg-transparent">
-            <LogOut className="w-4 h-4" /> Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Button variant="outline" size="icon" onClick={() => setShowNotifications(!showNotifications)} className="border-white/30 text-white hover:bg-white/10 bg-transparent relative">
+                <BellRing className="w-4 h-4" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive rounded-full text-[10px] flex items-center justify-center font-bold text-destructive-foreground">
+                    {notifications.length > 9 ? "9+" : notifications.length}
+                  </span>
+                )}
+              </Button>
+              {showNotifications && (
+                <div className="absolute right-0 top-12 w-80 bg-card rounded-xl shadow-2xl border border-border z-50 max-h-80 overflow-y-auto">
+                  <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                    <p className="font-bold text-sm text-foreground">Notifications</p>
+                    {notifications.length > 0 && (
+                      <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => setNotifications([])}>Clear all</Button>
+                    )}
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div className="p-6 text-center text-muted-foreground text-sm">No new notifications</div>
+                  ) : (
+                    notifications.map((n) => (
+                      <div key={n.id} className="px-4 py-3 border-b border-border last:border-0 hover:bg-muted/50">
+                        <div className="flex items-start gap-2">
+                          <span className="text-base mt-0.5">{n.type === "attendance" ? "📋" : "🔔"}</span>
+                          <div>
+                            <p className="text-sm text-foreground">{n.message}</p>
+                            <p className="text-[10px] text-muted-foreground mt-1">{n.time.toLocaleTimeString()}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+            <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 border-white/30 text-white hover:bg-white/10 bg-transparent">
+              <LogOut className="w-4 h-4" /> Logout
+            </Button>
+          </div>
         </div>
       </header>
 
