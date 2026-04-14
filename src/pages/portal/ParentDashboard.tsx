@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, GraduationCap, CreditCard, BookOpen, BarChart3, ClipboardList, Bell, Bus, Calendar, MapPin, School, User, Home } from "lucide-react";
+import { LogOut, GraduationCap, CreditCard, BookOpen, BarChart3, ClipboardList, Bell, Bus, Calendar, MapPin, School, User, Home, BellRing } from "lucide-react";
 import ChangePassword from "@/components/portal/ChangePassword";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function ParentDashboard() {
   const { user, logout, session } = useAuth();
