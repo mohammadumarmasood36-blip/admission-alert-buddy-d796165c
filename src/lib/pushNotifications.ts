@@ -31,7 +31,7 @@ export async function subscribeToPush(studentId: string): Promise<boolean> {
 
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as ArrayBuffer,
     });
 
     const key = subscription.getKey('p256dh');
