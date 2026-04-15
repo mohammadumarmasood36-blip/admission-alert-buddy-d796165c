@@ -10,6 +10,7 @@ import { LogOut, GraduationCap, CreditCard, BookOpen, BarChart3, ClipboardList, 
 import ChangePassword from "@/components/portal/ChangePassword";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { subscribeToPush, isPushSubscribed } from "@/lib/pushNotifications";
 
 export default function ParentDashboard() {
   const { user, logout, session } = useAuth();
@@ -101,6 +102,23 @@ export default function ParentDashboard() {
     return () => { supabase.removeChannel(channel); };
   }, [myChildren]);
 
+  // Push notifications
+  const [pushEnabled, setPushEnabled] = useState(false);
+  useEffect(() => {
+    isPushSubscribed().then(setPushEnabled);
+  }, []);
+
+  const handleEnablePush = useCallback(async () => {
+    if (!myChildren.length) return;
+    const success = await subscribeToPush(myChildren[0].id);
+    if (success) {
+      setPushEnabled(true);
+      toast.success("Push notifications enabled!");
+    } else {
+      toast.error("Could not enable push notifications. Please allow notifications in your browser.");
+    }
+  }, [myChildren]);
+
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
 
   useEffect(() => {
@@ -168,6 +186,11 @@ export default function ParentDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {!pushEnabled && (
+              <Button variant="outline" size="sm" onClick={handleEnablePush} className="gap-1 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs">
+                <Bell className="w-3 h-3" /> Enable Alerts
+              </Button>
+            )}
             <div className="relative">
               <Button variant="outline" size="icon" onClick={() => setShowNotifications(!showNotifications)} className="border-white/30 text-white hover:bg-white/10 bg-transparent relative">
                 <BellRing className="w-4 h-4" />

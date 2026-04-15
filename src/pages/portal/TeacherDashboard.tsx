@@ -147,6 +147,13 @@ export default function TeacherDashboard() {
       }
       const { data } = await supabase.from("attendance").select("*").eq("session", session);
       if (data) setAttendance(data);
+      // Send push notifications to parents
+      const studentIds = sectionStudents.map((s) => s.id);
+      if (studentIds.length > 0) {
+        supabase.functions.invoke("send-push", {
+          body: { student_ids: studentIds, title: "📋 Attendance Updated", body: `Attendance for ${attendanceDate} has been marked for ${selectedClass} - ${selectedSection}.` },
+        });
+      }
       toast.success("Attendance saved!");
     } catch { toast.error("Failed to save attendance"); }
     setSavingAttendance(false);
