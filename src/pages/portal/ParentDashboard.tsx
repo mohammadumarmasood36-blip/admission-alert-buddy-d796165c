@@ -119,10 +119,9 @@ export default function ParentDashboard() {
     }
   }, [myChildren]);
 
-
-
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
 
+  useEffect(() => {
     if (myChildren.length > 0 && !selectedChild) setSelectedChild(myChildren[0].id);
   }, [myChildren]);
 
