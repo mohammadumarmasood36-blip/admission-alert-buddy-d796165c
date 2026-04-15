@@ -10,6 +10,7 @@ import { LogOut, GraduationCap, CreditCard, BookOpen, BarChart3, ClipboardList, 
 import ChangePassword from "@/components/portal/ChangePassword";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { subscribeToPush, isPushSubscribed } from "@/lib/pushNotifications";
 
 export default function ParentDashboard() {
   const { user, logout, session } = useAuth();
