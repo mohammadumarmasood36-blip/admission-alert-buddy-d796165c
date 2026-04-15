@@ -186,6 +186,11 @@ export default function ParentDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {!pushEnabled && (
+              <Button variant="outline" size="sm" onClick={handleEnablePush} className="gap-1 border-white/30 text-white hover:bg-white/10 bg-transparent text-xs">
+                <Bell className="w-3 h-3" /> Enable Alerts
+              </Button>
+            )}
             <div className="relative">
               <Button variant="outline" size="icon" onClick={() => setShowNotifications(!showNotifications)} className="border-white/30 text-white hover:bg-white/10 bg-transparent relative">
                 <BellRing className="w-4 h-4" />
