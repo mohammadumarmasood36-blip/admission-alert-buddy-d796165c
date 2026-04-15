@@ -102,7 +102,24 @@ export default function ParentDashboard() {
     return () => { supabase.removeChannel(channel); };
   }, [myChildren]);
 
-  const [selectedChild, setSelectedChild] = useState<string | null>(null);
+  // Push notifications
+  const [pushEnabled, setPushEnabled] = useState(false);
+  useEffect(() => {
+    isPushSubscribed().then(setPushEnabled);
+  }, []);
+
+  const handleEnablePush = useCallback(async () => {
+    if (!myChildren.length) return;
+    const success = await subscribeToPush(myChildren[0].id);
+    if (success) {
+      setPushEnabled(true);
+      toast.success("Push notifications enabled!");
+    } else {
+      toast.error("Could not enable push notifications. Please allow notifications in your browser.");
+    }
+  }, [myChildren]);
+
+
 
   useEffect(() => {
     if (myChildren.length > 0 && !selectedChild) setSelectedChild(myChildren[0].id);
