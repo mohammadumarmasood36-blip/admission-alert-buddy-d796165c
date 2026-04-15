@@ -56,7 +56,18 @@ export default function NoticesPage() {
         target_values: targetValues,
       } as any).select().single();
       if (error) { toast.error("Failed to create notice"); return; }
-      if (data) setNotices((prev) => [data, ...prev]);
+      if (data) {
+        setNotices((prev) => [data, ...prev]);
+        // Send push notifications to relevant students
+        const targetStudentIds = targetType === "all"
+          ? students.map((s) => s.id)
+          : students.filter((s) => targetValues.includes(s.className)).map((s) => s.id);
+        if (targetStudentIds.length > 0) {
+          supabase.functions.invoke("send-push", {
+            body: { student_ids: targetStudentIds, title: "📢 " + title.trim(), body: content.trim().substring(0, 200) },
+          });
+        }
+      }
       toast.success("Notice created!");
     }
 
