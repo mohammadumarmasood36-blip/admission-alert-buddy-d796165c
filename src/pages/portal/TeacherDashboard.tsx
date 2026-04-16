@@ -45,8 +45,7 @@ export default function TeacherDashboard() {
   const [hwTitle, setHwTitle] = useState("");
   const [hwDesc, setHwDesc] = useState("");
   const [hwSubject, setHwSubject] = useState("");
-  const [hwClass, setHwClass] = useState("");
-  const [hwSection, setHwSection] = useState("");
+  const [hwClasses, setHwClasses] = useState<string[]>([]);
   const [hwDue, setHwDue] = useState("");
   const [homeworkList, setHomeworkList] = useState<any[]>([]);
   // Notices
@@ -54,10 +53,12 @@ export default function TeacherDashboard() {
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeContent, setNoticeContent] = useState("");
   const [noticeTarget, setNoticeTarget] = useState("all");
-  const [noticeClass, setNoticeClass] = useState("");
+  const [noticeClasses, setNoticeClasses] = useState<string[]>([]);
   const [notices, setNotices] = useState<any[]>([]);
   // Notice edit
   const [editingNotice, setEditingNotice] = useState<any>(null);
+  // Results lock
+  const [resultsEditMode, setResultsEditMode] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -119,20 +120,23 @@ export default function TeacherDashboard() {
     setAttendanceMap(map);
   }, [selectedClass, selectedSection, attendanceDate, sectionStudents, attendance]);
 
-  // ★ Load existing marks when switching to a result entry view
+  // ★ Load existing marks when switching to a result entry view & lock editing by default
   useEffect(() => {
     if (!selectedExam || !resultClass || !resultSection || !resultSubject) return;
     const sectionStuds = students.filter((s) => s.className === resultClass && s.section === resultSection);
     const entries: Record<string, { marks: string; max: string }> = {};
+    let hasExisting = false;
     sectionStuds.forEach((s) => {
       const existing = examResults.find(
         (r) => r.examination_id === selectedExam.id && r.admission_no === s.admissionNumber && r.subject === resultSubject
       );
       if (existing) {
         entries[s.id] = { marks: String(existing.marks_obtained), max: String(existing.max_marks) };
+        hasExisting = true;
       }
     });
     setResultEntries(entries);
+    setResultsEditMode(!hasExisting); // If marks already exist, lock them
   }, [selectedExam, resultClass, resultSection, resultSubject, examResults, students]);
 
   const handleSaveAttendance = async () => {
