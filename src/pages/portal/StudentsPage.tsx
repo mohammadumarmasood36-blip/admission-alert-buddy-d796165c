@@ -202,6 +202,7 @@ export default function StudentsPage() {
     setEditFormData({
       name: student.name,
       feeAmount: String(student.feeAmount),
+      photoFile: student.photoFile || "",
       fatherName: student.fatherName || "",
       fatherMobile: student.fatherMobile || "",
       fatherEmail: student.fatherEmail || "",
@@ -216,11 +217,20 @@ export default function StudentsPage() {
     setEditOpen(true);
   };
 
+  const handleEditPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setEditFormData((p: any) => ({ ...p, photoFile: reader.result as string }));
+    reader.readAsDataURL(file);
+  };
+
   const handleEditSave = () => {
     if (!editStudent) return;
     updateStudent(editStudent.id, {
       name: editFormData.name,
       feeAmount: Number(editFormData.feeAmount),
+      photoFile: editFormData.photoFile || undefined,
       fatherName: editFormData.fatherName || undefined,
       fatherMobile: editFormData.fatherMobile || undefined,
       fatherEmail: editFormData.fatherEmail || undefined,
