@@ -648,6 +648,23 @@ export default function StudentsPage() {
             <DialogTitle className="font-display">Edit Student — {editStudent?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
+            {/* Photo Update */}
+            <div>
+              <Label className="text-sm font-semibold">Student Photo</Label>
+              <div className="mt-2 flex items-center gap-4">
+                {editFormData.photoFile ? (
+                  <img src={editFormData.photoFile} alt="Student" className="w-20 h-20 rounded-lg object-cover border border-border" />
+                ) : (
+                  <div className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-muted/30">
+                    <Upload className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div>
+                  <Input type="file" accept="image/*" onChange={handleEditPhotoUpload} className="text-sm" />
+                  <p className="text-xs text-muted-foreground mt-1">Update student photo</p>
+                </div>
+              </div>
+            </div>
             <div>
               <Label>Full Name</Label>
               <Input value={editFormData.name || ""} onChange={(e) => setEditFormData((p: any) => ({ ...p, name: e.target.value }))} className="mt-1.5" />
