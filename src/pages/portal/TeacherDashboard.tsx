@@ -496,7 +496,14 @@ export default function TeacherDashboard() {
                 {resultClass && resultSection && resultSubject && (
                   <Card className="bg-white/80 border-0 shadow-lg animate-fade-in">
                     <CardHeader>
-                      <CardTitle className="text-lg">{resultSubject} — {resultClass} ({resultSection})</CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{resultSubject} — {resultClass} ({resultSection})</CardTitle>
+                        {!resultsEditMode && (
+                          <Button variant="outline" size="sm" onClick={() => setResultsEditMode(true)} className="gap-1">
+                            <Pencil className="w-3 h-3" /> Edit Marks
+                          </Button>
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <div className="overflow-x-auto">
@@ -507,16 +514,18 @@ export default function TeacherDashboard() {
                               <tr key={s.id} className="border-b border-border/50">
                                 <td className="py-2 px-2 font-mono text-xs">{s.rollNumber || idx + 1}</td>
                                 <td className="py-2 px-2 font-medium">{s.name}</td>
-                                <td className="py-2 px-2"><Input type="number" className="h-8 w-20 text-center mx-auto" value={resultEntries[s.id]?.marks || ""} onChange={(e) => setResultEntries((prev) => ({ ...prev, [s.id]: { ...prev[s.id], marks: e.target.value, max: prev[s.id]?.max || "100" } }))} /></td>
-                                <td className="py-2 px-2"><Input type="number" className="h-8 w-20 text-center mx-auto" value={resultEntries[s.id]?.max || "100"} onChange={(e) => setResultEntries((prev) => ({ ...prev, [s.id]: { ...prev[s.id], max: e.target.value, marks: prev[s.id]?.marks || "" } }))} /></td>
+                                <td className="py-2 px-2"><Input type="number" className="h-8 w-20 text-center mx-auto" disabled={!resultsEditMode} value={resultEntries[s.id]?.marks || ""} onChange={(e) => setResultEntries((prev) => ({ ...prev, [s.id]: { ...prev[s.id], marks: e.target.value, max: prev[s.id]?.max || "100" } }))} /></td>
+                                <td className="py-2 px-2"><Input type="number" className="h-8 w-20 text-center mx-auto" disabled={!resultsEditMode} value={resultEntries[s.id]?.max || "100"} onChange={(e) => setResultEntries((prev) => ({ ...prev, [s.id]: { ...prev[s.id], max: e.target.value, marks: prev[s.id]?.marks || "" } }))} /></td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </div>
-                      <Button onClick={handleSaveResults} disabled={savingResults} className="w-full mt-4 gap-2">
-                        {savingResults ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Results
-                      </Button>
+                      {resultsEditMode && (
+                        <Button onClick={handleSaveResults} disabled={savingResults} className="w-full mt-4 gap-2">
+                          {savingResults ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Results
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -567,7 +576,7 @@ export default function TeacherDashboard() {
           <TabsContent value="notices" className="space-y-4 mt-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold font-display flex items-center gap-2"><Megaphone className="w-5 h-5 text-primary" /> Notices</h3>
-              <Button onClick={() => { setEditingNotice(null); setNoticeTitle(""); setNoticeContent(""); setNoticeTarget("all"); setNoticeClass(""); setNoticeOpen(true); }} className="gap-2" size="sm"><Bell className="w-4 h-4" /> New Notice</Button>
+              <Button onClick={() => { setEditingNotice(null); setNoticeTitle(""); setNoticeContent(""); setNoticeTarget("all"); setNoticeClasses([]); setNoticeOpen(true); }} className="gap-2" size="sm"><Bell className="w-4 h-4" /> New Notice</Button>
             </div>
             {notices.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground"><Bell className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>No notices yet.</p></div>
@@ -684,16 +693,20 @@ export default function TeacherDashboard() {
                 </div>
                 <div><Label>Due Date</Label><Input type="date" value={hwDue} onChange={(e) => setHwDue(e.target.value)} className="mt-1" /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Class</Label>
-                  <Select value={hwClass} onValueChange={setHwClass}><SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>{Array.from(new Set(mySubjectAssignments.map((a) => a.class_name))).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div><Label>Section</Label>
-                  <Select value={hwSection} onValueChange={setHwSection}><SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>{mySubjectAssignments.filter((a) => a.class_name === hwClass).map((a) => <SelectItem key={a.section_name} value={a.section_name}>{a.section_name}</SelectItem>)}</SelectContent>
-                  </Select>
+              <div>
+                <Label>Assign to Classes & Sections (click to toggle)</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {mySubjectAssignments.filter((a) => a.subject === hwSubject).map((a) => {
+                    const key = `${a.class_name}|${a.section_name}`;
+                    return (
+                      <button key={key} type="button"
+                        onClick={() => setHwClasses((prev) => prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key])}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${hwClasses.includes(key) ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border hover:bg-muted/80"}`}
+                      >
+                        {a.class_name} ({a.section_name})
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               <Button onClick={handleAddHomework} className="w-full">Assign Homework</Button>
@@ -720,11 +733,17 @@ export default function TeacherDashboard() {
               </div>
               {noticeTarget === "class" && (
                 <div>
-                  <Label>Class</Label>
-                  <Select value={noticeClass} onValueChange={setNoticeClass}>
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select class" /></SelectTrigger>
-                    <SelectContent>{classes.filter((c) => c.sections.length > 0).map((c) => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <Label>Select Classes (click to toggle)</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {classes.filter((c) => c.sections.length > 0).map((c) => (
+                      <button key={c.name} type="button"
+                        onClick={() => setNoticeClasses((prev) => prev.includes(c.name) ? prev.filter((x) => x !== c.name) : [...prev, c.name])}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${noticeClasses.includes(c.name) ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border hover:bg-muted/80"}`}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
               <Button onClick={handleAddNotice} className="w-full">{editingNotice ? "Update Notice" : "Publish Notice"}</Button>
