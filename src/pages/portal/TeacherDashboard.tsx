@@ -214,15 +214,20 @@ export default function TeacherDashboard() {
   };
 
   const handleAddHomework = async () => {
-    if (!hwTitle.trim() || !hwSubject || !hwClass || !hwSection) { toast.error("Fill all fields"); return; }
-    const { data, error } = await supabase.from("homework").insert({
-      title: hwTitle.trim(), description: hwDesc, subject: hwSubject,
-      class_name: hwClass, section_name: hwSection, due_date: hwDue || null, assigned_by: user?.id,
-    } as any).select().single();
+    if (!hwTitle.trim() || !hwSubject || hwClasses.length === 0) { toast.error("Fill all fields"); return; }
+    // Insert homework for each selected class|section
+    const insertRows = hwClasses.map((cs) => {
+      const [cls, sec] = cs.split("|");
+      return {
+        title: hwTitle.trim(), description: hwDesc, subject: hwSubject,
+        class_name: cls, section_name: sec, due_date: hwDue || null, assigned_by: user?.id,
+      };
+    });
+    const { data, error } = await supabase.from("homework").insert(insertRows as any).select();
     if (error) { toast.error("Failed"); return; }
-    if (data) setHomeworkList((prev) => [data, ...prev]);
+    if (data) setHomeworkList((prev) => [...data, ...prev]);
     toast.success("Homework assigned!");
-    setHwOpen(false); setHwTitle(""); setHwDesc(""); setHwDue("");
+    setHwOpen(false); setHwTitle(""); setHwDesc(""); setHwDue(""); setHwClasses([]);
   };
 
   const handleDeleteHomework = async (id: string) => {
@@ -233,7 +238,7 @@ export default function TeacherDashboard() {
 
   const handleAddNotice = async () => {
     if (!noticeTitle.trim() || !noticeContent.trim()) { toast.error("Fill title and content"); return; }
-    const targetValues = noticeTarget === "class" && noticeClass ? [noticeClass] : [];
+    const targetValues = noticeTarget === "class" && noticeClasses.length > 0 ? noticeClasses : [];
     if (editingNotice) {
       const { error } = await supabase.from("notices").update({
         title: noticeTitle.trim(), content: noticeContent.trim(),
@@ -251,7 +256,7 @@ export default function TeacherDashboard() {
       if (data) setNotices((prev) => [data, ...prev]);
       toast.success("Notice published!");
     }
-    setNoticeOpen(false); setNoticeTitle(""); setNoticeContent(""); setEditingNotice(null);
+    setNoticeOpen(false); setNoticeTitle(""); setNoticeContent(""); setEditingNotice(null); setNoticeClasses([]);
   };
 
   const handleEditNotice = (notice: any) => {
@@ -259,7 +264,7 @@ export default function TeacherDashboard() {
     setNoticeTitle(notice.title);
     setNoticeContent(notice.content);
     setNoticeTarget(notice.target_type || "all");
-    setNoticeClass(notice.target_values?.[0] || "");
+    setNoticeClasses(notice.target_values || []);
     setNoticeOpen(true);
   };
 
