@@ -45,8 +45,7 @@ export default function TeacherDashboard() {
   const [hwTitle, setHwTitle] = useState("");
   const [hwDesc, setHwDesc] = useState("");
   const [hwSubject, setHwSubject] = useState("");
-  const [hwClass, setHwClass] = useState("");
-  const [hwSection, setHwSection] = useState("");
+  const [hwClasses, setHwClasses] = useState<string[]>([]);
   const [hwDue, setHwDue] = useState("");
   const [homeworkList, setHomeworkList] = useState<any[]>([]);
   // Notices
@@ -54,10 +53,12 @@ export default function TeacherDashboard() {
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeContent, setNoticeContent] = useState("");
   const [noticeTarget, setNoticeTarget] = useState("all");
-  const [noticeClass, setNoticeClass] = useState("");
+  const [noticeClasses, setNoticeClasses] = useState<string[]>([]);
   const [notices, setNotices] = useState<any[]>([]);
   // Notice edit
   const [editingNotice, setEditingNotice] = useState<any>(null);
+  // Results lock
+  const [resultsEditMode, setResultsEditMode] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -119,20 +120,23 @@ export default function TeacherDashboard() {
     setAttendanceMap(map);
   }, [selectedClass, selectedSection, attendanceDate, sectionStudents, attendance]);
 
-  // ★ Load existing marks when switching to a result entry view
+  // ★ Load existing marks when switching to a result entry view & lock editing by default
   useEffect(() => {
     if (!selectedExam || !resultClass || !resultSection || !resultSubject) return;
     const sectionStuds = students.filter((s) => s.className === resultClass && s.section === resultSection);
     const entries: Record<string, { marks: string; max: string }> = {};
+    let hasExisting = false;
     sectionStuds.forEach((s) => {
       const existing = examResults.find(
         (r) => r.examination_id === selectedExam.id && r.admission_no === s.admissionNumber && r.subject === resultSubject
       );
       if (existing) {
         entries[s.id] = { marks: String(existing.marks_obtained), max: String(existing.max_marks) };
+        hasExisting = true;
       }
     });
     setResultEntries(entries);
+    setResultsEditMode(!hasExisting); // If marks already exist, lock them
   }, [selectedExam, resultClass, resultSection, resultSubject, examResults, students]);
 
   const handleSaveAttendance = async () => {
@@ -210,15 +214,20 @@ export default function TeacherDashboard() {
   };
 
   const handleAddHomework = async () => {
-    if (!hwTitle.trim() || !hwSubject || !hwClass || !hwSection) { toast.error("Fill all fields"); return; }
-    const { data, error } = await supabase.from("homework").insert({
-      title: hwTitle.trim(), description: hwDesc, subject: hwSubject,
-      class_name: hwClass, section_name: hwSection, due_date: hwDue || null, assigned_by: user?.id,
-    } as any).select().single();
+    if (!hwTitle.trim() || !hwSubject || hwClasses.length === 0) { toast.error("Fill all fields"); return; }
+    // Insert homework for each selected class|section
+    const insertRows = hwClasses.map((cs) => {
+      const [cls, sec] = cs.split("|");
+      return {
+        title: hwTitle.trim(), description: hwDesc, subject: hwSubject,
+        class_name: cls, section_name: sec, due_date: hwDue || null, assigned_by: user?.id,
+      };
+    });
+    const { data, error } = await supabase.from("homework").insert(insertRows as any).select();
     if (error) { toast.error("Failed"); return; }
-    if (data) setHomeworkList((prev) => [data, ...prev]);
+    if (data) setHomeworkList((prev) => [...data, ...prev]);
     toast.success("Homework assigned!");
-    setHwOpen(false); setHwTitle(""); setHwDesc(""); setHwDue("");
+    setHwOpen(false); setHwTitle(""); setHwDesc(""); setHwDue(""); setHwClasses([]);
   };
 
   const handleDeleteHomework = async (id: string) => {
@@ -229,7 +238,7 @@ export default function TeacherDashboard() {
 
   const handleAddNotice = async () => {
     if (!noticeTitle.trim() || !noticeContent.trim()) { toast.error("Fill title and content"); return; }
-    const targetValues = noticeTarget === "class" && noticeClass ? [noticeClass] : [];
+    const targetValues = noticeTarget === "class" && noticeClasses.length > 0 ? noticeClasses : [];
     if (editingNotice) {
       const { error } = await supabase.from("notices").update({
         title: noticeTitle.trim(), content: noticeContent.trim(),
@@ -247,7 +256,7 @@ export default function TeacherDashboard() {
       if (data) setNotices((prev) => [data, ...prev]);
       toast.success("Notice published!");
     }
-    setNoticeOpen(false); setNoticeTitle(""); setNoticeContent(""); setEditingNotice(null);
+    setNoticeOpen(false); setNoticeTitle(""); setNoticeContent(""); setEditingNotice(null); setNoticeClasses([]);
   };
 
   const handleEditNotice = (notice: any) => {
@@ -255,7 +264,7 @@ export default function TeacherDashboard() {
     setNoticeTitle(notice.title);
     setNoticeContent(notice.content);
     setNoticeTarget(notice.target_type || "all");
-    setNoticeClass(notice.target_values?.[0] || "");
+    setNoticeClasses(notice.target_values || []);
     setNoticeOpen(true);
   };
 
@@ -487,7 +496,14 @@ export default function TeacherDashboard() {
                 {resultClass && resultSection && resultSubject && (
                   <Card className="bg-white/80 border-0 shadow-lg animate-fade-in">
                     <CardHeader>
-                      <CardTitle className="text-lg">{resultSubject} — {resultClass} ({resultSection})</CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{resultSubject} — {resultClass} ({resultSection})</CardTitle>
+                        {!resultsEditMode && (
+                          <Button variant="outline" size="sm" onClick={() => setResultsEditMode(true)} className="gap-1">
+                            <Pencil className="w-3 h-3" /> Edit Marks
+                          </Button>
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <div className="overflow-x-auto">
@@ -498,16 +514,18 @@ export default function TeacherDashboard() {
                               <tr key={s.id} className="border-b border-border/50">
                                 <td className="py-2 px-2 font-mono text-xs">{s.rollNumber || idx + 1}</td>
                                 <td className="py-2 px-2 font-medium">{s.name}</td>
-                                <td className="py-2 px-2"><Input type="number" className="h-8 w-20 text-center mx-auto" value={resultEntries[s.id]?.marks || ""} onChange={(e) => setResultEntries((prev) => ({ ...prev, [s.id]: { ...prev[s.id], marks: e.target.value, max: prev[s.id]?.max || "100" } }))} /></td>
-                                <td className="py-2 px-2"><Input type="number" className="h-8 w-20 text-center mx-auto" value={resultEntries[s.id]?.max || "100"} onChange={(e) => setResultEntries((prev) => ({ ...prev, [s.id]: { ...prev[s.id], max: e.target.value, marks: prev[s.id]?.marks || "" } }))} /></td>
+                                <td className="py-2 px-2"><Input type="number" className="h-8 w-20 text-center mx-auto" disabled={!resultsEditMode} value={resultEntries[s.id]?.marks || ""} onChange={(e) => setResultEntries((prev) => ({ ...prev, [s.id]: { ...prev[s.id], marks: e.target.value, max: prev[s.id]?.max || "100" } }))} /></td>
+                                <td className="py-2 px-2"><Input type="number" className="h-8 w-20 text-center mx-auto" disabled={!resultsEditMode} value={resultEntries[s.id]?.max || "100"} onChange={(e) => setResultEntries((prev) => ({ ...prev, [s.id]: { ...prev[s.id], max: e.target.value, marks: prev[s.id]?.marks || "" } }))} /></td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </div>
-                      <Button onClick={handleSaveResults} disabled={savingResults} className="w-full mt-4 gap-2">
-                        {savingResults ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Results
-                      </Button>
+                      {resultsEditMode && (
+                        <Button onClick={handleSaveResults} disabled={savingResults} className="w-full mt-4 gap-2">
+                          {savingResults ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Results
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -558,7 +576,7 @@ export default function TeacherDashboard() {
           <TabsContent value="notices" className="space-y-4 mt-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold font-display flex items-center gap-2"><Megaphone className="w-5 h-5 text-primary" /> Notices</h3>
-              <Button onClick={() => { setEditingNotice(null); setNoticeTitle(""); setNoticeContent(""); setNoticeTarget("all"); setNoticeClass(""); setNoticeOpen(true); }} className="gap-2" size="sm"><Bell className="w-4 h-4" /> New Notice</Button>
+              <Button onClick={() => { setEditingNotice(null); setNoticeTitle(""); setNoticeContent(""); setNoticeTarget("all"); setNoticeClasses([]); setNoticeOpen(true); }} className="gap-2" size="sm"><Bell className="w-4 h-4" /> New Notice</Button>
             </div>
             {notices.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground"><Bell className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>No notices yet.</p></div>
@@ -675,16 +693,20 @@ export default function TeacherDashboard() {
                 </div>
                 <div><Label>Due Date</Label><Input type="date" value={hwDue} onChange={(e) => setHwDue(e.target.value)} className="mt-1" /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Class</Label>
-                  <Select value={hwClass} onValueChange={setHwClass}><SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>{Array.from(new Set(mySubjectAssignments.map((a) => a.class_name))).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div><Label>Section</Label>
-                  <Select value={hwSection} onValueChange={setHwSection}><SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>{mySubjectAssignments.filter((a) => a.class_name === hwClass).map((a) => <SelectItem key={a.section_name} value={a.section_name}>{a.section_name}</SelectItem>)}</SelectContent>
-                  </Select>
+              <div>
+                <Label>Assign to Classes & Sections (click to toggle)</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {mySubjectAssignments.filter((a) => a.subject === hwSubject).map((a) => {
+                    const key = `${a.class_name}|${a.section_name}`;
+                    return (
+                      <button key={key} type="button"
+                        onClick={() => setHwClasses((prev) => prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key])}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${hwClasses.includes(key) ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border hover:bg-muted/80"}`}
+                      >
+                        {a.class_name} ({a.section_name})
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               <Button onClick={handleAddHomework} className="w-full">Assign Homework</Button>
@@ -711,11 +733,17 @@ export default function TeacherDashboard() {
               </div>
               {noticeTarget === "class" && (
                 <div>
-                  <Label>Class</Label>
-                  <Select value={noticeClass} onValueChange={setNoticeClass}>
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select class" /></SelectTrigger>
-                    <SelectContent>{classes.filter((c) => c.sections.length > 0).map((c) => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <Label>Select Classes (click to toggle)</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {classes.filter((c) => c.sections.length > 0).map((c) => (
+                      <button key={c.name} type="button"
+                        onClick={() => setNoticeClasses((prev) => prev.includes(c.name) ? prev.filter((x) => x !== c.name) : [...prev, c.name])}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${noticeClasses.includes(c.name) ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border hover:bg-muted/80"}`}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
               <Button onClick={handleAddNotice} className="w-full">{editingNotice ? "Update Notice" : "Publish Notice"}</Button>

@@ -22,7 +22,7 @@ export default function NoticesPage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [targetType, setTargetType] = useState("all");
-  const [targetClass, setTargetClass] = useState("");
+  const [targetClasses, setTargetClasses] = useState<string[]>([]);
   const [editingNotice, setEditingNotice] = useState<any>(null);
 
   useEffect(() => {
@@ -35,7 +35,7 @@ export default function NoticesPage() {
 
   const handleSave = async () => {
     if (!title.trim() || !content.trim()) { toast.error("Fill title and content"); return; }
-    const targetValues = targetType === "class" && targetClass ? [targetClass] : [];
+    const targetValues = targetType === "class" && targetClasses.length > 0 ? targetClasses : [];
 
     if (editingNotice) {
       const { error } = await supabase.from("notices").update({
@@ -58,7 +58,6 @@ export default function NoticesPage() {
       if (error) { toast.error("Failed to create notice"); return; }
       if (data) {
         setNotices((prev) => [data, ...prev]);
-        // Send push notifications to relevant students
         const targetStudentIds = targetType === "all"
           ? students.map((s) => s.id)
           : students.filter((s) => targetValues.includes(s.className)).map((s) => s.id);
@@ -71,7 +70,7 @@ export default function NoticesPage() {
       toast.success("Notice created!");
     }
 
-    setTitle(""); setContent(""); setTargetType("all"); setTargetClass(""); setOpen(false); setEditingNotice(null);
+    setTitle(""); setContent(""); setTargetType("all"); setTargetClasses([]); setOpen(false); setEditingNotice(null);
   };
 
   const handleEdit = (notice: any) => {
@@ -79,7 +78,7 @@ export default function NoticesPage() {
     setTitle(notice.title);
     setContent(notice.content);
     setTargetType(notice.target_type || "all");
-    setTargetClass(notice.target_values?.[0] || "");
+    setTargetClasses(notice.target_values || []);
     setOpen(true);
   };
 
@@ -106,7 +105,7 @@ export default function NoticesPage() {
         </div>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditingNotice(null); setTitle(""); setContent(""); } }}>
           <DialogTrigger asChild>
-            <Button className="gap-2" onClick={() => { setEditingNotice(null); setTitle(""); setContent(""); setTargetType("all"); setTargetClass(""); }}><Plus className="w-4 h-4" /> New Notice</Button>
+            <Button className="gap-2" onClick={() => { setEditingNotice(null); setTitle(""); setContent(""); setTargetType("all"); setTargetClasses([]); }}><Plus className="w-4 h-4" /> New Notice</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>{editingNotice ? "Edit Notice" : "Create Notice"}</DialogTitle></DialogHeader>
@@ -125,15 +124,20 @@ export default function NoticesPage() {
               </div>
               {targetType === "class" && (
                 <div>
-                  <Label>Class</Label>
-                  <Select value={targetClass} onValueChange={setTargetClass}>
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select class" /></SelectTrigger>
-                    <SelectContent>
-                      {classes.filter((c) => c.sections.length > 0).map((c) => (
-                        <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Select Classes (click to toggle)</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {classes.filter((c) => c.sections.length > 0).map((c) => (
+                      <button
+                        key={c.name}
+                        type="button"
+                        onClick={() => setTargetClasses((prev) => prev.includes(c.name) ? prev.filter((x) => x !== c.name) : [...prev, c.name])}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${targetClasses.includes(c.name) ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border hover:bg-muted/80"}`}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                  {targetClasses.length > 0 && <p className="text-xs text-muted-foreground mt-1">Selected: {targetClasses.join(", ")}</p>}
                 </div>
               )}
               <Button onClick={handleSave} className="w-full">{editingNotice ? "Update Notice" : "Publish Notice"}</Button>
@@ -160,9 +164,9 @@ export default function NoticesPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-xs">
-                    {notice.target_type === "all" ? "All Students" : `Class ${notice.target_values?.[0] || ""}`}
+                    {notice.target_type === "all" ? "All Students" : `Class ${(notice.target_values || []).join(", ")}`}
                   </Badge>
-                  {notice.created_by === user?.id && (
+                  {(notice.created_by === user?.id || user?.role === "principal" || user?.role === "manager") && (
                     <>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(notice)}>
                         <Pencil className="w-3.5 h-3.5 text-primary" />

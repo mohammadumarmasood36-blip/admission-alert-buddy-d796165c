@@ -514,6 +514,39 @@ export type Database = {
           },
         ]
       }
+      salary_payments: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          id: string
+          month: string
+          paid: boolean | null
+          paid_date: string | null
+          staff_id: string
+          year: number
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          month: string
+          paid?: boolean | null
+          paid_date?: string | null
+          staff_id: string
+          year: number
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string
+          month?: string
+          paid?: boolean | null
+          paid_date?: string | null
+          staff_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       sections: {
         Row: {
           class_name: string

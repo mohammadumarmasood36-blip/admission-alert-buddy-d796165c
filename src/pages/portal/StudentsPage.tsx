@@ -202,6 +202,7 @@ export default function StudentsPage() {
     setEditFormData({
       name: student.name,
       feeAmount: String(student.feeAmount),
+      photoFile: student.photoFile || "",
       fatherName: student.fatherName || "",
       fatherMobile: student.fatherMobile || "",
       fatherEmail: student.fatherEmail || "",
@@ -216,11 +217,20 @@ export default function StudentsPage() {
     setEditOpen(true);
   };
 
+  const handleEditPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setEditFormData((p: any) => ({ ...p, photoFile: reader.result as string }));
+    reader.readAsDataURL(file);
+  };
+
   const handleEditSave = () => {
     if (!editStudent) return;
     updateStudent(editStudent.id, {
       name: editFormData.name,
       feeAmount: Number(editFormData.feeAmount),
+      photoFile: editFormData.photoFile || undefined,
       fatherName: editFormData.fatherName || undefined,
       fatherMobile: editFormData.fatherMobile || undefined,
       fatherEmail: editFormData.fatherEmail || undefined,
@@ -638,6 +648,23 @@ export default function StudentsPage() {
             <DialogTitle className="font-display">Edit Student — {editStudent?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
+            {/* Photo Update */}
+            <div>
+              <Label className="text-sm font-semibold">Student Photo</Label>
+              <div className="mt-2 flex items-center gap-4">
+                {editFormData.photoFile ? (
+                  <img src={editFormData.photoFile} alt="Student" className="w-20 h-20 rounded-lg object-cover border border-border" />
+                ) : (
+                  <div className="w-20 h-20 rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-muted/30">
+                    <Upload className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div>
+                  <Input type="file" accept="image/*" onChange={handleEditPhotoUpload} className="text-sm" />
+                  <p className="text-xs text-muted-foreground mt-1">Update student photo</p>
+                </div>
+              </div>
+            </div>
             <div>
               <Label>Full Name</Label>
               <Input value={editFormData.name || ""} onChange={(e) => setEditFormData((p: any) => ({ ...p, name: e.target.value }))} className="mt-1.5" />
