@@ -81,7 +81,16 @@ serve(async (req) => {
         "Exam Incharge": "exam_incharge",
       };
 
-      const mappedRole = roleMap[staff.Role] || role;
+      const mappedRole = roleMap[staff.Role] || staff.Role?.toLowerCase();
+
+      // Validate that the staff member's actual role matches the selected login role
+      if (mappedRole !== role) {
+        const roleLabel = staff.Role || mappedRole;
+        return new Response(JSON.stringify({ error: `User not found. This account is registered as ${roleLabel}, not as ${role}.` }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
 
       return new Response(JSON.stringify({
         user: {
