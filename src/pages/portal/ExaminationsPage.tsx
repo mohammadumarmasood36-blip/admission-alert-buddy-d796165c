@@ -738,12 +738,18 @@ export default function ExaminationsPage() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {examinations.map(exam => (
-              <Card key={exam.id} className="hover:border-primary/30 transition-all hover-lift cursor-pointer group">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
+              <Card key={exam.id} className="relative overflow-hidden border hover:border-secondary/50 transition-all hover-lift cursor-pointer group">
+                <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${getExamGradient(exam.status)}`} />
+                <CardHeader className="pb-3 pt-5">
+                  <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0" onClick={() => setSelectedExam(exam)}>
-                      <CardTitle className="text-lg truncate">{exam.name}</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">{examTypes.find(t => t.value === exam.type)?.label}</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${getExamGradient(exam.status)} flex items-center justify-center shadow-sm`}>
+                          <ClipboardList className="w-4 h-4 text-white" />
+                        </div>
+                        <CardTitle className="text-lg truncate">{exam.name}</CardTitle>
+                      </div>
+                      <p className="text-sm text-muted-foreground ml-11">{examTypes.find(t => t.value === exam.type)?.label}</p>
                     </div>
                     <Badge className={getStatusColor(exam.status)}>{exam.status.charAt(0).toUpperCase() + exam.status.slice(1)}</Badge>
                   </div>
@@ -751,7 +757,7 @@ export default function ExaminationsPage() {
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
+                      <Calendar className="w-4 h-4 text-secondary" />
                       <span>Starts: {new Date(exam.start_date).toLocaleDateString("en-IN")}</span>
                     </div>
                     <div className="flex flex-wrap gap-1">
@@ -760,7 +766,7 @@ export default function ExaminationsPage() {
                     </div>
                     {exam.description && <p className="text-xs text-muted-foreground line-clamp-2">{exam.description}</p>}
                     <div className="flex gap-2 pt-2">
-                      <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={() => setSelectedExam(exam)}><Eye className="w-3.5 h-3.5" /> View Details</Button>
+                      <Button size="sm" variant="outline" className="flex-1 gap-1 group-hover:bg-secondary group-hover:text-secondary-foreground group-hover:border-secondary transition-colors" onClick={() => setSelectedExam(exam)}><Eye className="w-3.5 h-3.5" /> View Details</Button>
                       {isExamIncharge && <Button size="sm" variant="ghost" onClick={e => { e.stopPropagation(); handleEditExam(exam); }}><Pencil className="w-3.5 h-3.5" /></Button>}
                       {isExamIncharge && <Button size="sm" variant="ghost" onClick={e => { e.stopPropagation(); handleDeleteExam(exam.id); }}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                     </div>
