@@ -86,10 +86,19 @@ function getGrade(marks: number, max: number): string {
 
 function getStatusColor(status: string) {
   switch (status) {
-    case "upcoming": return "bg-primary/10 text-primary";
-    case "ongoing": return "bg-accent text-accent-foreground";
-    case "completed": return "bg-muted text-muted-foreground";
+    case "upcoming": return "bg-info text-info-foreground border-0";
+    case "ongoing": return "bg-warning text-warning-foreground border-0 animate-pulse";
+    case "completed": return "bg-success text-success-foreground border-0";
     default: return "";
+  }
+}
+
+function getExamGradient(status: string) {
+  switch (status) {
+    case "upcoming": return "from-info/80 to-info";
+    case "ongoing": return "from-warning/80 to-warning";
+    case "completed": return "from-success/80 to-success";
+    default: return "from-primary/80 to-primary";
   }
 }
 
