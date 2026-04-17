@@ -86,10 +86,19 @@ function getGrade(marks: number, max: number): string {
 
 function getStatusColor(status: string) {
   switch (status) {
-    case "upcoming": return "bg-primary/10 text-primary";
-    case "ongoing": return "bg-accent text-accent-foreground";
-    case "completed": return "bg-muted text-muted-foreground";
+    case "upcoming": return "bg-info text-info-foreground border-0";
+    case "ongoing": return "bg-warning text-warning-foreground border-0 animate-pulse";
+    case "completed": return "bg-success text-success-foreground border-0";
     default: return "";
+  }
+}
+
+function getExamGradient(status: string) {
+  switch (status) {
+    case "upcoming": return "from-info/80 to-info";
+    case "ongoing": return "from-warning/80 to-warning";
+    case "completed": return "from-success/80 to-success";
+    default: return "from-primary/80 to-primary";
   }
 }
 
@@ -626,13 +635,26 @@ export default function ExaminationsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-display">Examination Management</h1>
-            <p className="text-muted-foreground mt-1">Manage all examinations, schedules, results & more</p>
-          </div>
-          {isExamIncharge && <Dialog open={examDialogOpen} onOpenChange={o => { setExamDialogOpen(o); if (!o) { setEditingExam(null); setExamForm({ name: "", type: "unit_test", start_date: "", classes: [], description: "" }); } }}>
-            <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" /> Add New Exam</Button></DialogTrigger>
+        {/* Vibrant Hero Header */}
+        <div className="relative overflow-hidden rounded-2xl p-6 md:p-8 bg-gradient-to-br from-primary via-primary/90 to-secondary text-primary-foreground shadow-lg">
+          <div className="absolute inset-0 bg-grid-pattern opacity-10" />
+          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-secondary/30 blur-3xl floating" />
+          <div className="absolute -bottom-16 -left-10 w-56 h-56 rounded-full bg-accent/30 blur-3xl floating-delayed" />
+          <div className="relative flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-primary-foreground/15 backdrop-blur-sm flex items-center justify-center glow-secondary">
+                <GraduationCap className="w-7 h-7 text-secondary" />
+              </div>
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold font-display flex items-center gap-2">
+                  Examination Hub
+                  <Sparkles className="w-6 h-6 text-secondary animate-pulse" />
+                </h1>
+                <p className="text-primary-foreground/80 mt-1">Schedules • Results • Seating • Report Cards</p>
+              </div>
+            </div>
+            {isExamIncharge && <Dialog open={examDialogOpen} onOpenChange={o => { setExamDialogOpen(o); if (!o) { setEditingExam(null); setExamForm({ name: "", type: "unit_test", start_date: "", classes: [], description: "" }); } }}>
+            <DialogTrigger asChild><Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-md gap-2 font-semibold"><Plus className="w-4 h-4" /> Add New Exam</Button></DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader><DialogTitle>{editingExam ? "Edit Examination" : "Create New Examination"}</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
@@ -657,26 +679,51 @@ export default function ExaminationsPage() {
               </div>
             </DialogContent>
           </Dialog>}
+          </div>
         </div>
 
-        {/* Stats */}
+        {/* Colorful Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card><CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><ClipboardList className="w-5 h-5 text-primary" /></div>
-            <div><p className="text-2xl font-bold">{examinations.length}</p><p className="text-xs text-muted-foreground">Total Exams</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Calendar className="w-5 h-5 text-primary" /></div>
-            <div><p className="text-2xl font-bold">{upcomingExams.length}</p><p className="text-xs text-muted-foreground">Upcoming</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><FileText className="w-5 h-5 text-accent-foreground" /></div>
-            <div><p className="text-2xl font-bold">{ongoingExams.length}</p><p className="text-xs text-muted-foreground">Ongoing</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center"><Award className="w-5 h-5 text-muted-foreground" /></div>
-            <div><p className="text-2xl font-bold">{examinations.filter(e => e.status === "completed").length}</p><p className="text-xs text-muted-foreground">Completed</p></div>
-          </CardContent></Card>
+          <Card className="overflow-hidden border-0 shadow-md hover-lift bg-gradient-to-br from-info/90 to-info text-info-foreground">
+            <CardContent className="p-5 relative">
+              <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-white/10 blur-xl" />
+              <div className="relative flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Total Exams</p>
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"><ClipboardList className="w-5 h-5" /></div>
+              </div>
+              <p className="text-3xl font-bold font-display">{examinations.length}</p>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden border-0 shadow-md hover-lift bg-gradient-to-br from-warning/90 to-warning text-warning-foreground">
+            <CardContent className="p-5 relative">
+              <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-white/10 blur-xl" />
+              <div className="relative flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Upcoming</p>
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"><Calendar className="w-5 h-5" /></div>
+              </div>
+              <p className="text-3xl font-bold font-display">{upcomingExams.length}</p>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden border-0 shadow-md hover-lift bg-gradient-to-br from-success/90 to-success text-success-foreground">
+            <CardContent className="p-5 relative">
+              <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-white/10 blur-xl" />
+              <div className="relative flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Ongoing</p>
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"><FileText className="w-5 h-5" /></div>
+              </div>
+              <p className="text-3xl font-bold font-display">{ongoingExams.length}</p>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden border-0 shadow-md hover-lift bg-gradient-to-br from-secondary to-accent text-secondary-foreground">
+            <CardContent className="p-5 relative">
+              <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-white/10 blur-xl" />
+              <div className="relative flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Completed</p>
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"><Award className="w-5 h-5" /></div>
+              </div>
+              <p className="text-3xl font-bold font-display">{examinations.filter(e => e.status === "completed").length}</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Examination Cards */}
@@ -691,12 +738,18 @@ export default function ExaminationsPage() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {examinations.map(exam => (
-              <Card key={exam.id} className="hover:border-primary/30 transition-all hover-lift cursor-pointer group">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
+              <Card key={exam.id} className="relative overflow-hidden border hover:border-secondary/50 transition-all hover-lift cursor-pointer group">
+                <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${getExamGradient(exam.status)}`} />
+                <CardHeader className="pb-3 pt-5">
+                  <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0" onClick={() => setSelectedExam(exam)}>
-                      <CardTitle className="text-lg truncate">{exam.name}</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">{examTypes.find(t => t.value === exam.type)?.label}</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${getExamGradient(exam.status)} flex items-center justify-center shadow-sm`}>
+                          <ClipboardList className="w-4 h-4 text-white" />
+                        </div>
+                        <CardTitle className="text-lg truncate">{exam.name}</CardTitle>
+                      </div>
+                      <p className="text-sm text-muted-foreground ml-11">{examTypes.find(t => t.value === exam.type)?.label}</p>
                     </div>
                     <Badge className={getStatusColor(exam.status)}>{exam.status.charAt(0).toUpperCase() + exam.status.slice(1)}</Badge>
                   </div>
@@ -704,7 +757,7 @@ export default function ExaminationsPage() {
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
+                      <Calendar className="w-4 h-4 text-secondary" />
                       <span>Starts: {new Date(exam.start_date).toLocaleDateString("en-IN")}</span>
                     </div>
                     <div className="flex flex-wrap gap-1">
@@ -713,7 +766,7 @@ export default function ExaminationsPage() {
                     </div>
                     {exam.description && <p className="text-xs text-muted-foreground line-clamp-2">{exam.description}</p>}
                     <div className="flex gap-2 pt-2">
-                      <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={() => setSelectedExam(exam)}><Eye className="w-3.5 h-3.5" /> View Details</Button>
+                      <Button size="sm" variant="outline" className="flex-1 gap-1 group-hover:bg-secondary group-hover:text-secondary-foreground group-hover:border-secondary transition-colors" onClick={() => setSelectedExam(exam)}><Eye className="w-3.5 h-3.5" /> View Details</Button>
                       {isExamIncharge && <Button size="sm" variant="ghost" onClick={e => { e.stopPropagation(); handleEditExam(exam); }}><Pencil className="w-3.5 h-3.5" /></Button>}
                       {isExamIncharge && <Button size="sm" variant="ghost" onClick={e => { e.stopPropagation(); handleDeleteExam(exam.id); }}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}
                     </div>
