@@ -290,8 +290,9 @@ export default function StudentsPage() {
     setEditStudent(null);
   };
 
-  const handleDeleteStudent = (student: Student) => {
+  const handleDeleteStudent = async (student: Student) => {
     if (confirm(`Are you sure you want to remove ${student.name}?`)) {
+      await supabase.from("student_subjects").delete().eq("student_id", student.id);
       removeStudent(student.id);
       toast.success(`${student.name} removed`);
     }
