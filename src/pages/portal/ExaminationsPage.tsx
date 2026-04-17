@@ -626,13 +626,26 @@ export default function ExaminationsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-display">Examination Management</h1>
-            <p className="text-muted-foreground mt-1">Manage all examinations, schedules, results & more</p>
-          </div>
-          {isExamIncharge && <Dialog open={examDialogOpen} onOpenChange={o => { setExamDialogOpen(o); if (!o) { setEditingExam(null); setExamForm({ name: "", type: "unit_test", start_date: "", classes: [], description: "" }); } }}>
-            <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" /> Add New Exam</Button></DialogTrigger>
+        {/* Vibrant Hero Header */}
+        <div className="relative overflow-hidden rounded-2xl p-6 md:p-8 bg-gradient-to-br from-primary via-primary/90 to-secondary text-primary-foreground shadow-lg">
+          <div className="absolute inset-0 bg-grid-pattern opacity-10" />
+          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-secondary/30 blur-3xl floating" />
+          <div className="absolute -bottom-16 -left-10 w-56 h-56 rounded-full bg-accent/30 blur-3xl floating-delayed" />
+          <div className="relative flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-primary-foreground/15 backdrop-blur-sm flex items-center justify-center glow-secondary">
+                <GraduationCap className="w-7 h-7 text-secondary" />
+              </div>
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold font-display flex items-center gap-2">
+                  Examination Hub
+                  <Sparkles className="w-6 h-6 text-secondary animate-pulse" />
+                </h1>
+                <p className="text-primary-foreground/80 mt-1">Schedules • Results • Seating • Report Cards</p>
+              </div>
+            </div>
+            {isExamIncharge && <Dialog open={examDialogOpen} onOpenChange={o => { setExamDialogOpen(o); if (!o) { setEditingExam(null); setExamForm({ name: "", type: "unit_test", start_date: "", classes: [], description: "" }); } }}>
+            <DialogTrigger asChild><Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-md gap-2 font-semibold"><Plus className="w-4 h-4" /> Add New Exam</Button></DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader><DialogTitle>{editingExam ? "Edit Examination" : "Create New Examination"}</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
@@ -657,26 +670,51 @@ export default function ExaminationsPage() {
               </div>
             </DialogContent>
           </Dialog>}
+          </div>
         </div>
 
-        {/* Stats */}
+        {/* Colorful Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card><CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><ClipboardList className="w-5 h-5 text-primary" /></div>
-            <div><p className="text-2xl font-bold">{examinations.length}</p><p className="text-xs text-muted-foreground">Total Exams</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Calendar className="w-5 h-5 text-primary" /></div>
-            <div><p className="text-2xl font-bold">{upcomingExams.length}</p><p className="text-xs text-muted-foreground">Upcoming</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><FileText className="w-5 h-5 text-accent-foreground" /></div>
-            <div><p className="text-2xl font-bold">{ongoingExams.length}</p><p className="text-xs text-muted-foreground">Ongoing</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center"><Award className="w-5 h-5 text-muted-foreground" /></div>
-            <div><p className="text-2xl font-bold">{examinations.filter(e => e.status === "completed").length}</p><p className="text-xs text-muted-foreground">Completed</p></div>
-          </CardContent></Card>
+          <Card className="overflow-hidden border-0 shadow-md hover-lift bg-gradient-to-br from-info/90 to-info text-info-foreground">
+            <CardContent className="p-5 relative">
+              <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-white/10 blur-xl" />
+              <div className="relative flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Total Exams</p>
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"><ClipboardList className="w-5 h-5" /></div>
+              </div>
+              <p className="text-3xl font-bold font-display">{examinations.length}</p>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden border-0 shadow-md hover-lift bg-gradient-to-br from-warning/90 to-warning text-warning-foreground">
+            <CardContent className="p-5 relative">
+              <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-white/10 blur-xl" />
+              <div className="relative flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Upcoming</p>
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"><Calendar className="w-5 h-5" /></div>
+              </div>
+              <p className="text-3xl font-bold font-display">{upcomingExams.length}</p>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden border-0 shadow-md hover-lift bg-gradient-to-br from-success/90 to-success text-success-foreground">
+            <CardContent className="p-5 relative">
+              <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-white/10 blur-xl" />
+              <div className="relative flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Ongoing</p>
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"><FileText className="w-5 h-5" /></div>
+              </div>
+              <p className="text-3xl font-bold font-display">{ongoingExams.length}</p>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden border-0 shadow-md hover-lift bg-gradient-to-br from-secondary to-accent text-secondary-foreground">
+            <CardContent className="p-5 relative">
+              <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-white/10 blur-xl" />
+              <div className="relative flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-90">Completed</p>
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"><Award className="w-5 h-5" /></div>
+              </div>
+              <p className="text-3xl font-bold font-display">{examinations.filter(e => e.status === "completed").length}</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Examination Cards */}
