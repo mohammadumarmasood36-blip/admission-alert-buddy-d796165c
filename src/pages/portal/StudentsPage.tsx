@@ -14,6 +14,8 @@ import { Plus, GraduationCap, Users, Trash2, Settings, CreditCard, Bus, Upload, 
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import StudentIdCard from "@/components/portal/StudentIdCard";
+import SubjectMultiSelect from "@/components/portal/SubjectMultiSelect";
+import { isSeniorClass } from "@/lib/seniorClasses";
 import type { Student } from "@/context/SchoolContext";
 
 export default function StudentsPage() {
@@ -76,6 +78,11 @@ export default function StudentsPage() {
     busNumber: "",
     parentPassword: "",
   });
+  const [formSubjects, setFormSubjects] = useState<string[]>([]);
+  const [editSubjects, setEditSubjects] = useState<string[]>([]);
+
+  // Reset selected subjects when class changes
+  useEffect(() => { setFormSubjects([]); }, [formData.className]);
 
   const updateForm = (field: string, value: any) => setFormData((prev) => ({ ...prev, [field]: value }));
 
@@ -119,6 +126,16 @@ export default function StudentsPage() {
     reader.readAsDataURL(file);
   };
 
+  const saveStudentSubjects = async (studentId: string, subjects: string[]) => {
+    // Replace existing subjects: delete all, then insert new
+    await supabase.from("student_subjects").delete().eq("student_id", studentId);
+    if (subjects.length > 0) {
+      await supabase.from("student_subjects").insert(
+        subjects.map((s) => ({ student_id: studentId, subject_name: s }))
+      );
+    }
+  };
+
   const handleAdd = async () => {
     if (!formData.name.trim() || !formData.feeAmount) {
       toast.error("Please fill required fields (Name & Fee Amount)");
@@ -126,6 +143,10 @@ export default function StudentsPage() {
     }
     if (!formData.parentPassword.trim()) {
       toast.error("Please create a parent login password");
+      return;
+    }
+    if (isSeniorClass(formData.className) && formSubjects.length === 0) {
+      toast.error("Please select at least one subject for this class");
       return;
     }
     const autoSection = getAutoSection(formData.className);
@@ -153,6 +174,16 @@ export default function StudentsPage() {
       parentPassword: formData.parentPassword || undefined,
     });
 
+    if (result && formSubjects.length > 0) {
+      // Find the new student id by admission number
+      const { data } = await supabase
+        .from("students")
+        .select("id")
+        .eq("admission_number", result.admissionNumber)
+        .single();
+      if (data?.id) await saveStudentSubjects(data.id, formSubjects);
+    }
+
     setFormData({
       name: "", className: "Nursery", feeAmount: "", photoFile: "",
       fatherName: "", fatherMobile: "", fatherEmail: "",
@@ -160,6 +191,7 @@ export default function StudentsPage() {
       address: "", transportFacility: false, pickupLocation: "", busNumber: "",
       parentPassword: "",
     });
+    setFormSubjects([]);
     setAddOpen(false);
 
     if (result) {
@@ -197,7 +229,7 @@ export default function StudentsPage() {
     return sectionStudents.findIndex((s) => s.name === student.name) + 1;
   };
 
-  const openEdit = (student: Student) => {
+  const openEdit = async (student: Student) => {
     setEditStudent(student);
     setEditFormData({
       name: student.name,
@@ -214,6 +246,12 @@ export default function StudentsPage() {
       pickupLocation: student.pickupLocation || "",
       busNumber: student.busNumber || "",
     });
+    // Load student subjects
+    const { data } = await supabase
+      .from("student_subjects")
+      .select("subject_name")
+      .eq("student_id", student.id);
+    setEditSubjects((data || []).map((r: any) => r.subject_name));
     setEditOpen(true);
   };
 
@@ -225,8 +263,12 @@ export default function StudentsPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleEditSave = () => {
+  const handleEditSave = async () => {
     if (!editStudent) return;
+    if (isSeniorClass(editStudent.className) && editSubjects.length === 0) {
+      toast.error("Please select at least one subject for this class");
+      return;
+    }
     updateStudent(editStudent.id, {
       name: editFormData.name,
       feeAmount: Number(editFormData.feeAmount),
@@ -242,13 +284,15 @@ export default function StudentsPage() {
       pickupLocation: editFormData.transportFacility ? editFormData.pickupLocation || undefined : undefined,
       busNumber: editFormData.transportFacility ? editFormData.busNumber || undefined : undefined,
     });
+    await saveStudentSubjects(editStudent.id, editSubjects);
     toast.success(`${editFormData.name} updated`);
     setEditOpen(false);
     setEditStudent(null);
   };
 
-  const handleDeleteStudent = (student: Student) => {
+  const handleDeleteStudent = async (student: Student) => {
     if (confirm(`Are you sure you want to remove ${student.name}?`)) {
+      await supabase.from("student_subjects").delete().eq("student_id", student.id);
       removeStudent(student.id);
       toast.success(`${student.name} removed`);
     }
@@ -344,6 +388,15 @@ export default function StudentsPage() {
                 <Label>Fee Amount (₨) <span className="text-destructive">*</span></Label>
                 <Input type="number" placeholder="e.g. 5000" value={formData.feeAmount} onChange={(e) => updateForm("feeAmount", e.target.value)} className="mt-1.5" />
               </div>
+
+              {/* Subjects (required for senior classes) */}
+              <SubjectMultiSelect
+                className={formData.className}
+                selected={formSubjects}
+                onChange={setFormSubjects}
+                required={isSeniorClass(formData.className)}
+              />
+
 
               {/* Father Details */}
               <div>
@@ -673,6 +726,15 @@ export default function StudentsPage() {
               <Label>Fee Amount (₨)</Label>
               <Input type="number" value={editFormData.feeAmount || ""} onChange={(e) => setEditFormData((p: any) => ({ ...p, feeAmount: e.target.value }))} className="mt-1.5" />
             </div>
+            {editStudent && (
+              <SubjectMultiSelect
+                className={editStudent.className}
+                selected={editSubjects}
+                onChange={setEditSubjects}
+                required={isSeniorClass(editStudent.className)}
+              />
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <Label className="text-xs">Father's Name</Label>
