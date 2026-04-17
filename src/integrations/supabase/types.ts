@@ -100,6 +100,27 @@ export type Database = {
         }
         Relationships: []
       }
+      class_subjects: {
+        Row: {
+          class_name: string
+          created_at: string | null
+          id: string
+          subject_name: string
+        }
+        Insert: {
+          class_name: string
+          created_at?: string | null
+          id?: string
+          subject_name: string
+        }
+        Update: {
+          class_name?: string
+          created_at?: string | null
+          id?: string
+          subject_name?: string
+        }
+        Relationships: []
+      }
       class_teacher_assignments: {
         Row: {
           class_name: string
@@ -651,6 +672,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      student_subjects: {
+        Row: {
+          created_at: string | null
+          id: string
+          student_id: string
+          subject_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          student_id: string
+          subject_name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          student_id?: string
+          subject_name?: string
+        }
+        Relationships: []
       }
       students: {
         Row: {
