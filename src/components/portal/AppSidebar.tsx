@@ -11,6 +11,7 @@ const managerNavItems = [
   { to: "/portal", label: "Dashboard", icon: LayoutDashboard },
   { to: "/portal/staff", label: "Staff", icon: Users },
   { to: "/portal/students", label: "Students", icon: GraduationCap },
+  { to: "/portal/subjects", label: "Subjects", icon: BookOpen },
   { to: "/portal/fees", label: "Fees", icon: Wallet },
   { to: "/portal/salary", label: "Salary", icon: Banknote },
   { to: "/portal/notices", label: "Notices", icon: Bell },
@@ -22,6 +23,7 @@ const principalNavItems = [
   { to: "/portal", label: "Dashboard", icon: LayoutDashboard },
   { to: "/portal/staff", label: "Staff", icon: Users },
   { to: "/portal/students", label: "Students", icon: GraduationCap },
+  { to: "/portal/subjects", label: "Subjects", icon: BookOpen },
   { to: "/portal/fees", label: "Fees", icon: Wallet },
   { to: "/portal/salary", label: "Salary", icon: Banknote },
   { to: "/portal/class-teachers", label: "Class Teachers", icon: UserCheck },
@@ -33,6 +35,7 @@ const principalNavItems = [
 
 const cashierNavItems = [
   { to: "/portal/students", label: "Students", icon: GraduationCap },
+  { to: "/portal/subjects", label: "Subjects", icon: BookOpen },
   { to: "/portal/fees", label: "Fees", icon: Wallet },
   { to: "/portal/notices", label: "Notices", icon: Bell },
 ];

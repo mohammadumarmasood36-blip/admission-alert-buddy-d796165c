@@ -21,6 +21,7 @@ import WebsiteManagePage from "./pages/portal/WebsiteManagePage";
 import ExaminationsPage from "./pages/portal/ExaminationsPage";
 import ClassTeacherPage from "./pages/portal/ClassTeacherPage";
 import SubjectAssignmentPage from "./pages/portal/SubjectAssignmentPage";
+import SubjectsPage from "./pages/portal/SubjectsPage";
 import NoticesPage from "./pages/portal/NoticesPage";
 import InstallApp from "./pages/InstallApp";
 
@@ -46,6 +47,7 @@ function AuthenticatedPortalRoutes({ role }: { role?: string }) {
         <Route path="/students" element={<StudentsPage />} />
         <Route path="/fees" element={<FeesPage />} />
         <Route path="/notices" element={<NoticesPage />} />
+        <Route path="/subjects" element={<SubjectsPage />} />
         <Route path="*" element={<Navigate to="/portal/students" />} />
       </Routes>
     );
@@ -72,6 +74,7 @@ function AuthenticatedPortalRoutes({ role }: { role?: string }) {
       <Route path="/examinations" element={<ExaminationsPage />} />
       <Route path="/class-teachers" element={<ClassTeacherPage />} />
       <Route path="/subject-assignments" element={<SubjectAssignmentPage />} />
+      <Route path="/subjects" element={<SubjectsPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
