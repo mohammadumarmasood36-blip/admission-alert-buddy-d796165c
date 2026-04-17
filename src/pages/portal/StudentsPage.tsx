@@ -14,6 +14,8 @@ import { Plus, GraduationCap, Users, Trash2, Settings, CreditCard, Bus, Upload, 
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import StudentIdCard from "@/components/portal/StudentIdCard";
+import SubjectMultiSelect from "@/components/portal/SubjectMultiSelect";
+import { isSeniorClass } from "@/lib/seniorClasses";
 import type { Student } from "@/context/SchoolContext";
 
 export default function StudentsPage() {
@@ -76,6 +78,11 @@ export default function StudentsPage() {
     busNumber: "",
     parentPassword: "",
   });
+  const [formSubjects, setFormSubjects] = useState<string[]>([]);
+  const [editSubjects, setEditSubjects] = useState<string[]>([]);
+
+  // Reset selected subjects when class changes
+  useEffect(() => { setFormSubjects([]); }, [formData.className]);
 
   const updateForm = (field: string, value: any) => setFormData((prev) => ({ ...prev, [field]: value }));
 
