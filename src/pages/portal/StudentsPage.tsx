@@ -388,6 +388,15 @@ export default function StudentsPage() {
                 <Input type="number" placeholder="e.g. 5000" value={formData.feeAmount} onChange={(e) => updateForm("feeAmount", e.target.value)} className="mt-1.5" />
               </div>
 
+              {/* Subjects (required for senior classes) */}
+              <SubjectMultiSelect
+                className={formData.className}
+                selected={formSubjects}
+                onChange={setFormSubjects}
+                required={isSeniorClass(formData.className)}
+              />
+
+
               {/* Father Details */}
               <div>
                 <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
@@ -716,6 +725,15 @@ export default function StudentsPage() {
               <Label>Fee Amount (₨)</Label>
               <Input type="number" value={editFormData.feeAmount || ""} onChange={(e) => setEditFormData((p: any) => ({ ...p, feeAmount: e.target.value }))} className="mt-1.5" />
             </div>
+            {editStudent && (
+              <SubjectMultiSelect
+                className={editStudent.className}
+                selected={editSubjects}
+                onChange={setEditSubjects}
+                required={isSeniorClass(editStudent.className)}
+              />
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <Label className="text-xs">Father's Name</Label>
