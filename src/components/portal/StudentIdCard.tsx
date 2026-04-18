@@ -17,6 +17,7 @@ interface StudentIdCardProps {
 export default function StudentIdCard({ student, open, onOpenChange, schoolName = "Universal Public School", session = "2025-26" }: StudentIdCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [principalSignature, setPrincipalSignature] = useState("");
+  const [subjects, setSubjects] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -28,8 +29,11 @@ export default function StudentIdCard({ student, open, onOpenChange, schoolName 
           } catch {}
         }
       });
+      supabase.from("student_subjects").select("subject_name").eq("student_id", student.id).then(({ data }) => {
+        setSubjects((data || []).map((r: any) => r.subject_name));
+      });
     }
-  }, [open]);
+  }, [open, student.id]);
 
   const handlePrint = () => {
     const printContent = cardRef.current;
@@ -191,6 +195,26 @@ export default function StudentIdCard({ student, open, onOpenChange, schoolName 
                   </div>
                 </div>
               </div>
+
+              {/* Subjects strip */}
+              {subjects.length > 0 && (
+                <div style={{ padding: "2px 8px 4px" }}>
+                  <div style={{ fontSize: "5.5px", color: "#0d47a1", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: "2px" }}>
+                    Subjects
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "2px" }}>
+                    {subjects.map((s) => (
+                      <span key={s} style={{
+                        fontSize: "5.5px", fontWeight: 700, color: "#fff",
+                        background: "linear-gradient(135deg, #1565c0, #2e7d32)",
+                        padding: "1px 4px", borderRadius: "3px"
+                      }}>
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Bottom section: Barcode + Signature */}
               <div style={{ marginTop: "auto" }}>

@@ -22,6 +22,7 @@ export default function ParentDashboard() {
   const [notices, setNotices] = useState<any[]>([]);
   const [homework, setHomework] = useState<any[]>([]);
   const [seatingPlans, setSeatingPlans] = useState<any[]>([]);
+  const [studentSubjects, setStudentSubjects] = useState<Record<string, string[]>>({});
 
   const myChildren = useMemo(() => {
     const child = students.find((s) => s.id === user?.id);
@@ -39,13 +40,14 @@ export default function ParentDashboard() {
       const admNos = myChildren.map((c) => c.admissionNumber);
       if (childIds.length === 0) return;
 
-      const [attRes, examRes, examsRes, noticeRes, hwRes, seatRes] = await Promise.all([
+      const [attRes, examRes, examsRes, noticeRes, hwRes, seatRes, subjRes] = await Promise.all([
         supabase.from("attendance").select("*").in("student_id", childIds).eq("session", session),
         supabase.from("exam_results").select("*").in("admission_no", admNos),
         supabase.from("examinations").select("*"),
         supabase.from("notices").select("*").order("created_at", { ascending: false }).limit(20),
         supabase.from("homework").select("*").order("created_at", { ascending: false }).limit(20),
         supabase.from("exam_seating_plans").select("*"),
+        supabase.from("student_subjects").select("student_id, subject_name").in("student_id", childIds),
       ]);
       if (attRes.data) setAttendance(attRes.data);
       if (examRes.data) setExamResults(examRes.data);
@@ -53,6 +55,14 @@ export default function ParentDashboard() {
       if (noticeRes.data) setNotices(noticeRes.data);
       if (hwRes.data) setHomework(hwRes.data);
       if (seatRes.data) setSeatingPlans(seatRes.data);
+      if (subjRes.data) {
+        const map: Record<string, string[]> = {};
+        subjRes.data.forEach((r: any) => {
+          if (!map[r.student_id]) map[r.student_id] = [];
+          map[r.student_id].push(r.subject_name);
+        });
+        setStudentSubjects(map);
+      }
     };
     load();
   }, [myChildren, session]);
@@ -268,6 +278,20 @@ export default function ParentDashboard() {
                 <p className="text-xs text-white/60">Adm No: {child.admissionNumber}</p>
               </div>
             </div>
+            {child && studentSubjects[child.id]?.length > 0 && (
+              <div className="px-4 py-3 bg-gradient-to-r from-indigo-50 to-blue-50 border-t border-blue-100">
+                <p className="text-xs font-semibold text-indigo-700 mb-2 flex items-center gap-1">
+                  <BookOpen className="w-3 h-3" /> Enrolled Subjects ({studentSubjects[child.id].length})
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {studentSubjects[child.id].map((s) => (
+                    <Badge key={s} variant="secondary" className="text-[10px] bg-white border-indigo-200 text-indigo-700">
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </Card>
         )}
 
