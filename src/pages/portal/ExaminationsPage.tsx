@@ -644,14 +644,28 @@ export default function ExaminationsPage() {
             </div>
             <div>
               <Label>Select Subjects (one per day)</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {subjects.map(s => (
-                  <button key={s} onClick={() => toggleAutoSubject(s)} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${autoSubjects.includes(s) ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border hover:bg-accent"}`}>
-                    {autoSubjects.includes(s) ? `${autoSubjects.indexOf(s) + 1}. ` : ""}{s}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Order = exam day order. Sundays auto-skipped.</p>
+              {loadingAutoSubjects ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading subjects from students…
+                </div>
+              ) : availableAutoSubjects.length === 0 ? (
+                <p className="text-sm text-destructive mt-2">
+                  No subjects found for these classes. Assign subjects to students first (Students page → Bulk Assign Subjects), or add them to the class master list (Subjects page).
+                </p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {availableAutoSubjects.map(s => (
+                      <button key={s} onClick={() => toggleAutoSubject(s)} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${autoSubjects.includes(s) ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border hover:bg-accent"}`}>
+                        {autoSubjects.includes(s) ? `${autoSubjects.indexOf(s) + 1}. ` : ""}{s}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Pulled from students' enrolled subjects. Order = exam day order. Sundays auto-skipped.
+                  </p>
+                </>
+              )}
             </div>
             <Button onClick={handleAutoGenerateSchedule} className="w-full gap-2"><Sparkles className="w-4 h-4" /> Generate for all {selectedExam?.classes?.length || 0} classes</Button>
           </div>
