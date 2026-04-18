@@ -619,9 +619,23 @@ export default function StudentsPage() {
       {/* Students list for selected class */}
       {viewClass && (
         <div className="bg-card border border-border rounded-xl overflow-hidden animate-fade-in">
-          <div className="px-6 py-4 border-b border-border bg-muted/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="px-6 py-4 border-b border-border bg-muted/50 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <h2 className="font-bold font-display">Class {viewClass} — Students</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant={missingSubjectsOnly ? "default" : "outline"}
+                size="sm"
+                onClick={() => setMissingSubjectsOnly((v) => !v)}
+                className="gap-1.5 h-8 text-xs"
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                {missingSubjectsOnly ? "Showing: Missing Subjects" : "Filter: Missing Subjects"}
+              </Button>
+              {!isViewOnly && (
+                <Button size="sm" variant="secondary" className="gap-1.5 h-8 text-xs" onClick={openBulkAssign}>
+                  <CheckSquare className="w-3.5 h-3.5" /> Bulk Assign Subjects
+                </Button>
+              )}
               <span className="text-sm text-muted-foreground">Section:</span>
               <Select value={viewSectionFilter} onValueChange={setViewSectionFilter}>
                 <SelectTrigger className="w-[120px] h-8 text-sm"><SelectValue /></SelectTrigger>
