@@ -30,6 +30,11 @@ export default function StudentsPage() {
   const [newSectionName, setNewSectionName] = useState("");
   const [viewClass, setViewClass] = useState<ClassName | null>(null);
   const [viewSectionFilter, setViewSectionFilter] = useState<string>("all");
+  const [missingSubjectsOnly, setMissingSubjectsOnly] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkSelectedIds, setBulkSelectedIds] = useState<string[]>([]);
+  const [bulkSubjects, setBulkSubjects] = useState<string[]>([]);
+  const [bulkSaving, setBulkSaving] = useState(false);
   const [idCardStudent, setIdCardStudent] = useState<Student | null>(null);
   const [editStudent, setEditStudent] = useState<Student | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -241,6 +246,10 @@ export default function StudentsPage() {
     // Apply section filter
     if (viewSectionFilter !== "all") {
       classStudents = classStudents.filter((s) => s.section === viewSectionFilter);
+    }
+    // Apply missing-subjects filter
+    if (missingSubjectsOnly) {
+      classStudents = classStudents.filter((s) => !studentSubjectsMap[s.id] || studentSubjectsMap[s.id].length === 0);
     }
     return classStudents;
   };
