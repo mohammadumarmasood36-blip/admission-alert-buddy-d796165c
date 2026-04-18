@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, GraduationCap, Users, Trash2, Settings, CreditCard, Bus, Upload, Pencil, UserCheck, Copy, Printer, MessageCircle, Loader2 } from "lucide-react";
+import { Plus, GraduationCap, Users, Trash2, Settings, CreditCard, Bus, Upload, Pencil, UserCheck, Copy, Printer, MessageCircle, Loader2, BookOpen, AlertTriangle, CheckSquare } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import StudentIdCard from "@/components/portal/StudentIdCard";
@@ -29,6 +30,11 @@ export default function StudentsPage() {
   const [newSectionName, setNewSectionName] = useState("");
   const [viewClass, setViewClass] = useState<ClassName | null>(null);
   const [viewSectionFilter, setViewSectionFilter] = useState<string>("all");
+  const [missingSubjectsOnly, setMissingSubjectsOnly] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkSelectedIds, setBulkSelectedIds] = useState<string[]>([]);
+  const [bulkSubjects, setBulkSubjects] = useState<string[]>([]);
+  const [bulkSaving, setBulkSaving] = useState(false);
   const [idCardStudent, setIdCardStudent] = useState<Student | null>(null);
   const [editStudent, setEditStudent] = useState<Student | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -241,6 +247,10 @@ export default function StudentsPage() {
     if (viewSectionFilter !== "all") {
       classStudents = classStudents.filter((s) => s.section === viewSectionFilter);
     }
+    // Apply missing-subjects filter
+    if (missingSubjectsOnly) {
+      classStudents = classStudents.filter((s) => !studentSubjectsMap[s.id] || studentSubjectsMap[s.id].length === 0);
+    }
     return classStudents;
   };
 
@@ -318,6 +328,40 @@ export default function StudentsPage() {
       await supabase.from("student_subjects").delete().eq("student_id", student.id);
       removeStudent(student.id);
       toast.success(`${student.name} removed`);
+    }
+  };
+
+  // Open bulk-assign dialog (defaults to currently filtered/visible students)
+  const openBulkAssign = () => {
+    if (!viewClass) return;
+    const visible = getSortedStudents(viewClass);
+    setBulkSelectedIds(visible.map((s) => s.id));
+    setBulkSubjects([]);
+    setBulkOpen(true);
+  };
+
+  const toggleBulkStudent = (id: string) => {
+    setBulkSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  };
+
+  const handleBulkSave = async () => {
+    if (bulkSelectedIds.length === 0) { toast.error("Select at least one student"); return; }
+    if (bulkSubjects.length === 0) { toast.error("Select at least one subject"); return; }
+    setBulkSaving(true);
+    try {
+      await supabase.from("student_subjects").delete().in("student_id", bulkSelectedIds);
+      const rows = bulkSelectedIds.flatMap((sid) => bulkSubjects.map((sub) => ({ student_id: sid, subject_name: sub })));
+      const { error } = await supabase.from("student_subjects").insert(rows);
+      if (error) throw error;
+      const newMap = { ...studentSubjectsMap };
+      bulkSelectedIds.forEach((sid) => { newMap[sid] = [...bulkSubjects]; });
+      setStudentSubjectsMap(newMap);
+      toast.success(`Assigned ${bulkSubjects.length} subject${bulkSubjects.length !== 1 ? "s" : ""} to ${bulkSelectedIds.length} student${bulkSelectedIds.length !== 1 ? "s" : ""}`);
+      setBulkOpen(false);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to bulk-assign subjects");
+    } finally {
+      setBulkSaving(false);
     }
   };
 
@@ -575,9 +619,23 @@ export default function StudentsPage() {
       {/* Students list for selected class */}
       {viewClass && (
         <div className="bg-card border border-border rounded-xl overflow-hidden animate-fade-in">
-          <div className="px-6 py-4 border-b border-border bg-muted/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="px-6 py-4 border-b border-border bg-muted/50 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <h2 className="font-bold font-display">Class {viewClass} — Students</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant={missingSubjectsOnly ? "default" : "outline"}
+                size="sm"
+                onClick={() => setMissingSubjectsOnly((v) => !v)}
+                className="gap-1.5 h-8 text-xs"
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                {missingSubjectsOnly ? "Showing: Missing Subjects" : "Filter: Missing Subjects"}
+              </Button>
+              {!isViewOnly && (
+                <Button size="sm" variant="secondary" className="gap-1.5 h-8 text-xs" onClick={openBulkAssign}>
+                  <CheckSquare className="w-3.5 h-3.5" /> Bulk Assign Subjects
+                </Button>
+              )}
               <span className="text-sm text-muted-foreground">Section:</span>
               <Select value={viewSectionFilter} onValueChange={setViewSectionFilter}>
                 <SelectTrigger className="w-[120px] h-8 text-sm"><SelectValue /></SelectTrigger>
@@ -611,7 +669,7 @@ export default function StudentsPage() {
                   <tr>
                     <td colSpan={11} className="text-center py-10 text-muted-foreground">
                       <GraduationCap className="w-8 h-8 mb-2 opacity-40 mx-auto" />
-                      <p className="text-sm">No students in this class</p>
+                      <p className="text-sm">{missingSubjectsOnly ? "No students missing subjects in this class 🎉" : "No students in this class"}</p>
                     </td>
                   </tr>
                 ) : (
@@ -950,6 +1008,97 @@ export default function StudentsPage() {
               </DialogFooter>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Assign Subjects Dialog */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary" />
+              Bulk Assign Subjects — Class {viewClass}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 mt-4">
+            <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm text-muted-foreground">
+              Select students and the subjects to assign. This <strong>replaces</strong> existing subject selections for chosen students.
+            </div>
+
+            {/* Subjects */}
+            {viewClass && (
+              <SubjectMultiSelect
+                className={viewClass}
+                selected={bulkSubjects}
+                onChange={setBulkSubjects}
+                required
+              />
+            )}
+
+            {/* Students */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-semibold">
+                  Students ({bulkSelectedIds.length} selected)
+                </Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs"
+                    onClick={() => viewClass && setBulkSelectedIds(getSortedStudents(viewClass).map((s) => s.id))}
+                  >
+                    Select all visible
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs"
+                    onClick={() => setBulkSelectedIds([])}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+              <div className="border border-border rounded-lg max-h-[40vh] overflow-y-auto divide-y">
+                {viewClass && getSortedStudents(viewClass).length === 0 && (
+                  <p className="text-sm text-muted-foreground p-4 text-center">No students match current filters</p>
+                )}
+                {viewClass && getSortedStudents(viewClass).map((s) => {
+                  const checked = bulkSelectedIds.includes(s.id);
+                  const currentSubs = studentSubjectsMap[s.id] || [];
+                  return (
+                    <label
+                      key={s.id}
+                      className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/40 transition-colors"
+                    >
+                      <Checkbox checked={checked} onCheckedChange={() => toggleBulkStudent(s.id)} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm truncate">{s.name}</span>
+                          <Badge variant="outline" className="text-[10px]">Sec {s.section}</Badge>
+                          <span className="text-[10px] font-mono text-muted-foreground">{s.admissionNumber}</span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                          Current: {currentSubs.length > 0 ? currentSubs.join(", ") : <span className="italic">none</span>}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkSaving}>Cancel</Button>
+              <Button onClick={handleBulkSave} disabled={bulkSaving} className="gap-2">
+                {bulkSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckSquare className="w-4 h-4" />}
+                Assign to {bulkSelectedIds.length} student{bulkSelectedIds.length !== 1 ? "s" : ""}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>
