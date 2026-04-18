@@ -1010,6 +1010,97 @@ export default function StudentsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Assign Subjects Dialog */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary" />
+              Bulk Assign Subjects — Class {viewClass}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 mt-4">
+            <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm text-muted-foreground">
+              Select students and the subjects to assign. This <strong>replaces</strong> existing subject selections for chosen students.
+            </div>
+
+            {/* Subjects */}
+            {viewClass && (
+              <SubjectMultiSelect
+                className={viewClass}
+                selected={bulkSubjects}
+                onChange={setBulkSubjects}
+                required
+              />
+            )}
+
+            {/* Students */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-semibold">
+                  Students ({bulkSelectedIds.length} selected)
+                </Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs"
+                    onClick={() => viewClass && setBulkSelectedIds(getSortedStudents(viewClass).map((s) => s.id))}
+                  >
+                    Select all visible
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs"
+                    onClick={() => setBulkSelectedIds([])}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+              <div className="border border-border rounded-lg max-h-[40vh] overflow-y-auto divide-y">
+                {viewClass && getSortedStudents(viewClass).length === 0 && (
+                  <p className="text-sm text-muted-foreground p-4 text-center">No students match current filters</p>
+                )}
+                {viewClass && getSortedStudents(viewClass).map((s) => {
+                  const checked = bulkSelectedIds.includes(s.id);
+                  const currentSubs = studentSubjectsMap[s.id] || [];
+                  return (
+                    <label
+                      key={s.id}
+                      className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/40 transition-colors"
+                    >
+                      <Checkbox checked={checked} onCheckedChange={() => toggleBulkStudent(s.id)} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm truncate">{s.name}</span>
+                          <Badge variant="outline" className="text-[10px]">Sec {s.section}</Badge>
+                          <span className="text-[10px] font-mono text-muted-foreground">{s.admissionNumber}</span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                          Current: {currentSubs.length > 0 ? currentSubs.join(", ") : <span className="italic">none</span>}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkSaving}>Cancel</Button>
+              <Button onClick={handleBulkSave} disabled={bulkSaving} className="gap-2">
+                {bulkSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckSquare className="w-4 h-4" />}
+                Assign to {bulkSelectedIds.length} student{bulkSelectedIds.length !== 1 ? "s" : ""}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
