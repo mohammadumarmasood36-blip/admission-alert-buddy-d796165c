@@ -278,6 +278,20 @@ export default function ParentDashboard() {
                 <p className="text-xs text-white/60">Adm No: {child.admissionNumber}</p>
               </div>
             </div>
+            {child && studentSubjects[child.id]?.length > 0 && (
+              <div className="px-4 py-3 bg-gradient-to-r from-indigo-50 to-blue-50 border-t border-blue-100">
+                <p className="text-xs font-semibold text-indigo-700 mb-2 flex items-center gap-1">
+                  <BookOpen className="w-3 h-3" /> Enrolled Subjects ({studentSubjects[child.id].length})
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {studentSubjects[child.id].map((s) => (
+                    <Badge key={s} variant="secondary" className="text-[10px] bg-white border-indigo-200 text-indigo-700">
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </Card>
         )}
 

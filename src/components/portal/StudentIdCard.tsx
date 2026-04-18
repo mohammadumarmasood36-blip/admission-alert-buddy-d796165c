@@ -17,6 +17,7 @@ interface StudentIdCardProps {
 export default function StudentIdCard({ student, open, onOpenChange, schoolName = "Universal Public School", session = "2025-26" }: StudentIdCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [principalSignature, setPrincipalSignature] = useState("");
+  const [subjects, setSubjects] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -28,8 +29,11 @@ export default function StudentIdCard({ student, open, onOpenChange, schoolName 
           } catch {}
         }
       });
+      supabase.from("student_subjects").select("subject_name").eq("student_id", student.id).then(({ data }) => {
+        setSubjects((data || []).map((r: any) => r.subject_name));
+      });
     }
-  }, [open]);
+  }, [open, student.id]);
 
   const handlePrint = () => {
     const printContent = cardRef.current;
