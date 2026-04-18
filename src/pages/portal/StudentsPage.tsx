@@ -669,7 +669,7 @@ export default function StudentsPage() {
                   <tr>
                     <td colSpan={11} className="text-center py-10 text-muted-foreground">
                       <GraduationCap className="w-8 h-8 mb-2 opacity-40 mx-auto" />
-                      <p className="text-sm">No students in this class</p>
+                      <p className="text-sm">{missingSubjectsOnly ? "No students missing subjects in this class 🎉" : "No students in this class"}</p>
                     </td>
                   </tr>
                 ) : (
