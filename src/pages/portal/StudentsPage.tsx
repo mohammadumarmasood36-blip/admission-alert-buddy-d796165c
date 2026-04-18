@@ -331,6 +331,40 @@ export default function StudentsPage() {
     }
   };
 
+  // Open bulk-assign dialog (defaults to currently filtered/visible students)
+  const openBulkAssign = () => {
+    if (!viewClass) return;
+    const visible = getSortedStudents(viewClass);
+    setBulkSelectedIds(visible.map((s) => s.id));
+    setBulkSubjects([]);
+    setBulkOpen(true);
+  };
+
+  const toggleBulkStudent = (id: string) => {
+    setBulkSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  };
+
+  const handleBulkSave = async () => {
+    if (bulkSelectedIds.length === 0) { toast.error("Select at least one student"); return; }
+    if (bulkSubjects.length === 0) { toast.error("Select at least one subject"); return; }
+    setBulkSaving(true);
+    try {
+      await supabase.from("student_subjects").delete().in("student_id", bulkSelectedIds);
+      const rows = bulkSelectedIds.flatMap((sid) => bulkSubjects.map((sub) => ({ student_id: sid, subject_name: sub })));
+      const { error } = await supabase.from("student_subjects").insert(rows);
+      if (error) throw error;
+      const newMap = { ...studentSubjectsMap };
+      bulkSelectedIds.forEach((sid) => { newMap[sid] = [...bulkSubjects]; });
+      setStudentSubjectsMap(newMap);
+      toast.success(`Assigned ${bulkSubjects.length} subject${bulkSubjects.length !== 1 ? "s" : ""} to ${bulkSelectedIds.length} student${bulkSelectedIds.length !== 1 ? "s" : ""}`);
+      setBulkOpen(false);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to bulk-assign subjects");
+    } finally {
+      setBulkSaving(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
