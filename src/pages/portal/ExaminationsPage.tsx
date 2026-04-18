@@ -157,6 +157,36 @@ export default function ExaminationsPage() {
     if (selectedExam) fetchExamDetails(selectedExam.id);
   }, [selectedExam, fetchExamDetails]);
 
+  // Load actual subjects assigned to students in the exam's classes (union of student_subjects).
+  // Falls back to class_subjects master list if no students have subjects yet.
+  useEffect(() => {
+    if (!autoScheduleOpen || !selectedExam) return;
+    const examClasses = selectedExam.classes || [];
+    if (examClasses.length === 0) { setAvailableAutoSubjects([]); return; }
+    setLoadingAutoSubjects(true);
+    (async () => {
+      const studentIds = students.filter((s) => examClasses.includes(s.className)).map((s) => s.id);
+      const found = new Set<string>();
+      if (studentIds.length > 0) {
+        const { data } = await supabase
+          .from("student_subjects")
+          .select("subject_name")
+          .in("student_id", studentIds);
+        (data || []).forEach((r: any) => found.add(r.subject_name));
+      }
+      // Fallback to class master list
+      if (found.size === 0) {
+        const { data } = await supabase
+          .from("class_subjects")
+          .select("subject_name")
+          .in("class_name", examClasses);
+        (data || []).forEach((r: any) => found.add(r.subject_name));
+      }
+      setAvailableAutoSubjects(Array.from(found).sort());
+      setLoadingAutoSubjects(false);
+    })();
+  }, [autoScheduleOpen, selectedExam, students]);
+
   // ── Examination CRUD ──
   const handleSaveExam = async () => {
     if (!examForm.name || !examForm.start_date || examForm.classes.length === 0) {
