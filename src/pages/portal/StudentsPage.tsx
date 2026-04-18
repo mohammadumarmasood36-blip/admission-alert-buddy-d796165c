@@ -36,6 +36,7 @@ export default function StudentsPage() {
   const [classTeachers, setClassTeachers] = useState<any[]>([]);
   const [classFeeDefaults, setClassFeeDefaults] = useState<Record<string, number>>({});
   const [credentialsDialog, setCredentialsDialog] = useState<{ admissionNumber: string; password: string; studentName: string } | null>(null);
+  const [studentSubjectsMap, setStudentSubjectsMap] = useState<Record<string, string[]>>({});
   const { staff } = useSchool();
 
   useEffect(() => {
@@ -53,6 +54,28 @@ export default function StudentsPage() {
     };
     load();
   }, []);
+
+  // Load subjects for students currently visible (by viewClass)
+  useEffect(() => {
+    if (!viewClass) return;
+    const ids = students.filter((s) => s.className === viewClass).map((s) => s.id);
+    if (ids.length === 0) {
+      setStudentSubjectsMap({});
+      return;
+    }
+    supabase
+      .from("student_subjects")
+      .select("student_id, subject_name")
+      .in("student_id", ids)
+      .then(({ data }) => {
+        const map: Record<string, string[]> = {};
+        (data || []).forEach((r: any) => {
+          if (!map[r.student_id]) map[r.student_id] = [];
+          map[r.student_id].push(r.subject_name);
+        });
+        setStudentSubjectsMap(map);
+      });
+  }, [viewClass, students]);
 
   const getClassTeacher = (className: string, sectionName: string) => {
     const assignment = classTeachers.find((a) => a.class_name === className && a.section_name === sectionName);
@@ -577,6 +600,7 @@ export default function StudentsPage() {
                   <th className="text-left px-4 py-3">Adm. No.</th>
                   <th className="text-left px-4 py-3">Father</th>
                       <th className="text-left px-4 py-3">Mobile</th>
+                      <th className="text-left px-4 py-3">Subjects</th>
                       <th className="text-left px-4 py-3">Transport</th>
                       <th className="text-left px-4 py-3">ID Card</th>
                   {!isViewOnly && <th className="text-left px-4 py-3">Actions</th>}
@@ -585,7 +609,7 @@ export default function StudentsPage() {
               <tbody>
                 {getSortedStudents(viewClass).length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="text-center py-10 text-muted-foreground">
+                    <td colSpan={11} className="text-center py-10 text-muted-foreground">
                       <GraduationCap className="w-8 h-8 mb-2 opacity-40 mx-auto" />
                       <p className="text-sm">No students in this class</p>
                     </td>
@@ -610,6 +634,28 @@ export default function StudentsPage() {
                       <td className="px-4 py-3 text-xs font-mono">{student.admissionNumber}</td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{student.fatherName || "—"}</td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{student.fatherMobile || student.motherMobile || "—"}</td>
+                      <td className="px-4 py-3">
+                        {(() => {
+                          const subs = studentSubjectsMap[student.id] || [];
+                          if (subs.length === 0) {
+                            return isSeniorClass(student.className) ? (
+                              <Badge variant="destructive" className="text-[10px]">None</Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            );
+                          }
+                          return (
+                            <div className="flex flex-wrap gap-1 max-w-[220px]" title={subs.join(", ")}>
+                              {subs.slice(0, 3).map((s) => (
+                                <Badge key={s} variant="secondary" className="text-[10px] px-1.5 py-0">{s}</Badge>
+                              ))}
+                              {subs.length > 3 && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">+{subs.length - 3}</Badge>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </td>
                       <td className="px-4 py-3">
                         {student.transportFacility ? (
                           <Badge variant="outline" className="text-xs gap-1"><Bus className="w-3 h-3" />{student.busNumber || "Yes"}</Badge>
