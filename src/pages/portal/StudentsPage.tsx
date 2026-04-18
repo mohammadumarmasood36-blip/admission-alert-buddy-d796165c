@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, GraduationCap, Users, Trash2, Settings, CreditCard, Bus, Upload, Pencil, UserCheck, Copy, Printer, MessageCircle, Loader2 } from "lucide-react";
+import { Plus, GraduationCap, Users, Trash2, Settings, CreditCard, Bus, Upload, Pencil, UserCheck, Copy, Printer, MessageCircle, Loader2, BookOpen, AlertTriangle, CheckSquare } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import StudentIdCard from "@/components/portal/StudentIdCard";
