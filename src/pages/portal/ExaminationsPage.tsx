@@ -710,7 +710,7 @@ export default function ExaminationsPage() {
         </div>
       {/* Auto Schedule Dialog */}
       <Dialog open={autoScheduleOpen} onOpenChange={setAutoScheduleOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" /> Auto Generate Schedule</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             <div><Label>Start Date</Label><Input type="date" value={autoStartDate} onChange={e => setAutoStartDate(e.target.value)} className="mt-1" /></div>
