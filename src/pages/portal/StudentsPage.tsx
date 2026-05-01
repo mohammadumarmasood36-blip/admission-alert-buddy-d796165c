@@ -1205,7 +1205,7 @@ export default function StudentsPage() {
               <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkSaving}>Cancel</Button>
               <Button onClick={handleBulkSave} disabled={bulkSaving} className="gap-2">
                 {bulkSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckSquare className="w-4 h-4" />}
-                Assign to {bulkSelectedIds.length} student{bulkSelectedIds.length !== 1 ? "s" : ""}
+                {bulkAppend ? "Append" : "Assign"} to {bulkSelectedIds.length} student{bulkSelectedIds.length !== 1 ? "s" : ""}
               </Button>
             </DialogFooter>
           </div>
