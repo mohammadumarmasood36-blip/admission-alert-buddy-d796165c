@@ -85,6 +85,27 @@ export default function StudentsPage() {
       });
   }, [viewClass, students]);
 
+  // Load subjects for ALL senior-class students (for per-class missing counter on grid)
+  useEffect(() => {
+    const seniorIds = students.filter((s) => isSeniorClass(s.className)).map((s) => s.id);
+    if (seniorIds.length === 0) {
+      setSeniorSubjectsMap({});
+      return;
+    }
+    supabase
+      .from("student_subjects")
+      .select("student_id, subject_name")
+      .in("student_id", seniorIds)
+      .then(({ data }) => {
+        const map: Record<string, string[]> = {};
+        (data || []).forEach((r: any) => {
+          if (!map[r.student_id]) map[r.student_id] = [];
+          map[r.student_id].push(r.subject_name);
+        });
+        setSeniorSubjectsMap(map);
+      });
+  }, [students]);
+
   const getClassTeacher = (className: string, sectionName: string) => {
     const assignment = classTeachers.find((a) => a.class_name === className && a.section_name === sectionName);
     if (!assignment?.staff_id) return null;
