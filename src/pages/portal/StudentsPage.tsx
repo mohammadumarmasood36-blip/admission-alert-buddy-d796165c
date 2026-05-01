@@ -43,6 +43,8 @@ export default function StudentsPage() {
   const [classFeeDefaults, setClassFeeDefaults] = useState<Record<string, number>>({});
   const [credentialsDialog, setCredentialsDialog] = useState<{ admissionNumber: string; password: string; studentName: string } | null>(null);
   const [studentSubjectsMap, setStudentSubjectsMap] = useState<Record<string, string[]>>({});
+  const [seniorSubjectsMap, setSeniorSubjectsMap] = useState<Record<string, string[]>>({});
+  const [bulkAppend, setBulkAppend] = useState(false);
   const { staff } = useSchool();
 
   useEffect(() => {
@@ -82,6 +84,27 @@ export default function StudentsPage() {
         setStudentSubjectsMap(map);
       });
   }, [viewClass, students]);
+
+  // Load subjects for ALL senior-class students (for per-class missing counter on grid)
+  useEffect(() => {
+    const seniorIds = students.filter((s) => isSeniorClass(s.className)).map((s) => s.id);
+    if (seniorIds.length === 0) {
+      setSeniorSubjectsMap({});
+      return;
+    }
+    supabase
+      .from("student_subjects")
+      .select("student_id, subject_name")
+      .in("student_id", seniorIds)
+      .then(({ data }) => {
+        const map: Record<string, string[]> = {};
+        (data || []).forEach((r: any) => {
+          if (!map[r.student_id]) map[r.student_id] = [];
+          map[r.student_id].push(r.subject_name);
+        });
+        setSeniorSubjectsMap(map);
+      });
+  }, [students]);
 
   const getClassTeacher = (className: string, sectionName: string) => {
     const assignment = classTeachers.find((a) => a.class_name === className && a.section_name === sectionName);
@@ -337,6 +360,7 @@ export default function StudentsPage() {
     const visible = getSortedStudents(viewClass);
     setBulkSelectedIds(visible.map((s) => s.id));
     setBulkSubjects([]);
+    setBulkAppend(false);
     setBulkOpen(true);
   };
 
@@ -349,14 +373,51 @@ export default function StudentsPage() {
     if (bulkSubjects.length === 0) { toast.error("Select at least one subject"); return; }
     setBulkSaving(true);
     try {
-      await supabase.from("student_subjects").delete().in("student_id", bulkSelectedIds);
-      const rows = bulkSelectedIds.flatMap((sid) => bulkSubjects.map((sub) => ({ student_id: sid, subject_name: sub })));
-      const { error } = await supabase.from("student_subjects").insert(rows);
-      if (error) throw error;
+      // Compute new per-student subject sets
+      const newPerStudent: Record<string, string[]> = {};
+
+      if (bulkAppend) {
+        // Fetch current rows for selected students, merge new subjects (dedupe), only insert what's missing
+        const { data: existing } = await supabase
+          .from("student_subjects")
+          .select("student_id, subject_name")
+          .in("student_id", bulkSelectedIds);
+        const existingMap: Record<string, Set<string>> = {};
+        (existing || []).forEach((r: any) => {
+          if (!existingMap[r.student_id]) existingMap[r.student_id] = new Set();
+          existingMap[r.student_id].add(r.subject_name);
+        });
+        const rows: { student_id: string; subject_name: string }[] = [];
+        bulkSelectedIds.forEach((sid) => {
+          const have = existingMap[sid] || new Set<string>();
+          bulkSubjects.forEach((sub) => {
+            if (!have.has(sub)) rows.push({ student_id: sid, subject_name: sub });
+          });
+          newPerStudent[sid] = Array.from(new Set([...(studentSubjectsMap[sid] || []), ...bulkSubjects]));
+        });
+        if (rows.length > 0) {
+          const { error } = await supabase.from("student_subjects").insert(rows);
+          if (error) throw error;
+        }
+      } else {
+        await supabase.from("student_subjects").delete().in("student_id", bulkSelectedIds);
+        const rows = bulkSelectedIds.flatMap((sid) => bulkSubjects.map((sub) => ({ student_id: sid, subject_name: sub })));
+        const { error } = await supabase.from("student_subjects").insert(rows);
+        if (error) throw error;
+        bulkSelectedIds.forEach((sid) => { newPerStudent[sid] = [...bulkSubjects]; });
+      }
+
       const newMap = { ...studentSubjectsMap };
-      bulkSelectedIds.forEach((sid) => { newMap[sid] = [...bulkSubjects]; });
+      const newSeniorMap = { ...seniorSubjectsMap };
+      Object.entries(newPerStudent).forEach(([sid, subs]) => {
+        newMap[sid] = subs;
+        newSeniorMap[sid] = subs;
+      });
       setStudentSubjectsMap(newMap);
-      toast.success(`Assigned ${bulkSubjects.length} subject${bulkSubjects.length !== 1 ? "s" : ""} to ${bulkSelectedIds.length} student${bulkSelectedIds.length !== 1 ? "s" : ""}`);
+      setSeniorSubjectsMap(newSeniorMap);
+      toast.success(
+        `${bulkAppend ? "Appended" : "Assigned"} ${bulkSubjects.length} subject${bulkSubjects.length !== 1 ? "s" : ""} to ${bulkSelectedIds.length} student${bulkSelectedIds.length !== 1 ? "s" : ""}`
+      );
       setBulkOpen(false);
     } catch (e: any) {
       toast.error(e.message || "Failed to bulk-assign subjects");
@@ -574,6 +635,11 @@ export default function StudentsPage() {
           ];
           const color = colorPalette[index % colorPalette.length];
           const isSelected = viewClass === cls.name;
+          const senior = isSeniorClass(cls.name);
+          const classStudents = students.filter((s) => s.className === cls.name);
+          const missingCount = senior
+            ? classStudents.filter((s) => !seniorSubjectsMap[s.id] || seniorSubjectsMap[s.id].length === 0).length
+            : 0;
 
           return (
             <div
@@ -596,6 +662,28 @@ export default function StudentsPage() {
               <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
                 <Users className="w-3 h-3" /> {studentCount} students
               </div>
+              {senior && classStudents.length > 0 && (
+                <div className="mb-1.5">
+                  {missingCount > 0 ? (
+                    <Badge
+                      variant="destructive"
+                      className="text-[10px] px-1.5 py-0 gap-1"
+                      title={`${missingCount} student${missingCount !== 1 ? "s" : ""} in Class ${cls.name} ${missingCount === 1 ? "has" : "have"} no subjects assigned`}
+                    >
+                      <AlertTriangle className="w-2.5 h-2.5" />
+                      {missingCount} missing subjects
+                    </Badge>
+                  ) : (
+                    <Badge
+                      className="text-[10px] px-1.5 py-0 gap-1 bg-emerald-600 hover:bg-emerald-600 text-white border-0"
+                      title="All students have subjects assigned"
+                    >
+                      <BookOpen className="w-2.5 h-2.5" />
+                      All assigned
+                    </Badge>
+                  )}
+                </div>
+              )}
               <div className="flex flex-wrap gap-1">
                 {cls.sections.map((s) => {
                   const ct = getClassTeacher(cls.name, s.name);
@@ -1022,7 +1110,29 @@ export default function StudentsPage() {
           </DialogHeader>
           <div className="space-y-5 mt-4">
             <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm text-muted-foreground">
-              Select students and the subjects to assign. This <strong>replaces</strong> existing subject selections for chosen students.
+              Select students and the subjects to assign.{" "}
+              {bulkAppend ? (
+                <>New subjects will be <strong className="text-foreground">added on top of</strong> existing ones (duplicates skipped).</>
+              ) : (
+                <>This <strong className="text-destructive">replaces</strong> existing subject selections for chosen students.</>
+              )}
+            </div>
+
+            {/* Append vs Replace Toggle */}
+            <div className="flex items-center justify-between border border-border rounded-lg p-3">
+              <div>
+                <Label htmlFor="bulk-append-toggle" className="text-sm font-semibold cursor-pointer">
+                  Append instead of replace
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Keep each student's existing subjects and merge in the new ones.
+                </p>
+              </div>
+              <Switch
+                id="bulk-append-toggle"
+                checked={bulkAppend}
+                onCheckedChange={setBulkAppend}
+              />
             </div>
 
             {/* Subjects */}
@@ -1095,7 +1205,7 @@ export default function StudentsPage() {
               <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkSaving}>Cancel</Button>
               <Button onClick={handleBulkSave} disabled={bulkSaving} className="gap-2">
                 {bulkSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckSquare className="w-4 h-4" />}
-                Assign to {bulkSelectedIds.length} student{bulkSelectedIds.length !== 1 ? "s" : ""}
+                {bulkAppend ? "Append" : "Assign"} to {bulkSelectedIds.length} student{bulkSelectedIds.length !== 1 ? "s" : ""}
               </Button>
             </DialogFooter>
           </div>

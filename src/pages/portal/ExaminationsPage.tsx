@@ -125,6 +125,7 @@ export default function ExaminationsPage() {
   const [autoEndTime, setAutoEndTime] = useState("12:00");
   const [autoSubjects, setAutoSubjects] = useState<string[]>([]);
   const [availableAutoSubjects, setAvailableAutoSubjects] = useState<string[]>([]);
+  const [perClassSubjects, setPerClassSubjects] = useState<Record<string, string[]>>({});
   const [loadingAutoSubjects, setLoadingAutoSubjects] = useState(false);
   const [admitCardClass, setAdmitCardClass] = useState<string | null>(null);
 
@@ -157,32 +158,58 @@ export default function ExaminationsPage() {
     if (selectedExam) fetchExamDetails(selectedExam.id);
   }, [selectedExam, fetchExamDetails]);
 
-  // Load actual subjects assigned to students in the exam's classes (union of student_subjects).
-  // Falls back to class_subjects master list if no students have subjects yet.
+  // Load actual subjects assigned to students per class. Falls back to class_subjects master list per class.
   useEffect(() => {
     if (!autoScheduleOpen || !selectedExam) return;
     const examClasses = selectedExam.classes || [];
-    if (examClasses.length === 0) { setAvailableAutoSubjects([]); return; }
+    if (examClasses.length === 0) {
+      setAvailableAutoSubjects([]);
+      setPerClassSubjects({});
+      return;
+    }
     setLoadingAutoSubjects(true);
     (async () => {
-      const studentIds = students.filter((s) => examClasses.includes(s.className)).map((s) => s.id);
-      const found = new Set<string>();
+      const perClass: Record<string, Set<string>> = {};
+      examClasses.forEach((c) => { perClass[c] = new Set(); });
+
+      // Map student.id -> className for the exam's classes
+      const examStudents = students.filter((s) => examClasses.includes(s.className));
+      const idToClass: Record<string, string> = {};
+      examStudents.forEach((s) => { idToClass[s.id] = s.className; });
+      const studentIds = examStudents.map((s) => s.id);
+
       if (studentIds.length > 0) {
         const { data } = await supabase
           .from("student_subjects")
-          .select("subject_name")
+          .select("student_id, subject_name")
           .in("student_id", studentIds);
-        (data || []).forEach((r: any) => found.add(r.subject_name));
+        (data || []).forEach((r: any) => {
+          const cls = idToClass[r.student_id];
+          if (cls) perClass[cls].add(r.subject_name);
+        });
       }
-      // Fallback to class master list
-      if (found.size === 0) {
+
+      // For any class with no student-assigned subjects, fall back to class_subjects master
+      const fallbackClasses = examClasses.filter((c) => perClass[c].size === 0);
+      if (fallbackClasses.length > 0) {
         const { data } = await supabase
           .from("class_subjects")
-          .select("subject_name")
-          .in("class_name", examClasses);
-        (data || []).forEach((r: any) => found.add(r.subject_name));
+          .select("class_name, subject_name")
+          .in("class_name", fallbackClasses);
+        (data || []).forEach((r: any) => {
+          if (perClass[r.class_name]) perClass[r.class_name].add(r.subject_name);
+        });
       }
-      setAvailableAutoSubjects(Array.from(found).sort());
+
+      const perClassObj: Record<string, string[]> = {};
+      const union = new Set<string>();
+      Object.entries(perClass).forEach(([cls, set]) => {
+        const arr = Array.from(set).sort();
+        perClassObj[cls] = arr;
+        arr.forEach((s) => union.add(s));
+      });
+      setPerClassSubjects(perClassObj);
+      setAvailableAutoSubjects(Array.from(union).sort());
       setLoadingAutoSubjects(false);
     })();
   }, [autoScheduleOpen, selectedExam, students]);
@@ -255,29 +282,50 @@ export default function ExaminationsPage() {
     }
     const examClasses = selectedExam.classes || [];
     const entries: any[] = [];
-    let currentDate = new Date(autoStartDate);
+    const perClassCounts: { cls: string; count: number }[] = [];
+    let roomCursor = 0;
 
-    for (let i = 0; i < autoSubjects.length; i++) {
-      const dateStr = currentDate.toISOString().split("T")[0];
-      for (const cls of examClasses) {
+    // Generate per-class: each class advances its own date pointer using only its own subjects.
+    for (const cls of examClasses) {
+      // Subjects this class actually has, in the order the user picked
+      const classSubs = perClassSubjects[cls] || [];
+      const subsForClass = autoSubjects.filter((s) => classSubs.includes(s));
+      if (subsForClass.length === 0) {
+        perClassCounts.push({ cls, count: 0 });
+        continue;
+      }
+      let currentDate = new Date(autoStartDate);
+      for (let i = 0; i < subsForClass.length; i++) {
+        const dateStr = currentDate.toISOString().split("T")[0];
         entries.push({
           examination_id: selectedExam.id,
-          subject: autoSubjects[i],
+          subject: subsForClass[i],
           date: dateStr,
           start_time: autoStartTime,
           end_time: autoEndTime,
-          room: rooms[i % rooms.length],
+          room: rooms[roomCursor % rooms.length],
           class: cls,
         });
+        roomCursor++;
+        // Advance to next day, skip Sundays
+        currentDate.setDate(currentDate.getDate() + 1);
+        if (currentDate.getDay() === 0) currentDate.setDate(currentDate.getDate() + 1);
       }
-      // Skip Sundays
-      currentDate.setDate(currentDate.getDate() + 1);
-      if (currentDate.getDay() === 0) currentDate.setDate(currentDate.getDate() + 1);
+      perClassCounts.push({ cls, count: subsForClass.length });
+    }
+
+    if (entries.length === 0) {
+      toast.error("None of the selected subjects match any class. Pick subjects assigned to these classes.");
+      return;
     }
 
     const { error } = await supabase.from("exam_schedules").insert(entries);
     if (error) { toast.error("Failed to generate schedule"); return; }
-    toast.success(`Auto-generated ${entries.length} schedule entries`);
+    const summary = perClassCounts
+      .filter((p) => p.count > 0)
+      .map((p) => `${p.cls}: ${p.count}`)
+      .join(" • ");
+    toast.success(`Generated ${entries.length} entries — ${summary}`);
     setAutoScheduleOpen(false);
     setAutoSubjects([]);
     setAutoStartDate("");
@@ -662,12 +710,40 @@ export default function ExaminationsPage() {
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Pulled from students' enrolled subjects. Order = exam day order. Sundays auto-skipped.
+                    Pulled from each class's enrolled subjects. Order = exam day order. Sundays auto-skipped.
                   </p>
                 </>
               )}
             </div>
-            <Button onClick={handleAutoGenerateSchedule} className="w-full gap-2"><Sparkles className="w-4 h-4" /> Generate for all {selectedExam?.classes?.length || 0} classes</Button>
+
+            {/* Per-class breakdown */}
+            {!loadingAutoSubjects && Object.keys(perClassSubjects).length > 1 && autoSubjects.length > 0 && (
+              <div className="border border-border rounded-lg p-3 bg-muted/30 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <GraduationCap className="w-3.5 h-3.5 text-primary" />
+                  Per-class timetable preview
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Each class gets only the subjects it has assigned. Classes with fewer subjects finish earlier.
+                </p>
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                  {(selectedExam?.classes || []).map((cls) => {
+                    const classSubs = perClassSubjects[cls] || [];
+                    const matched = autoSubjects.filter((s) => classSubs.includes(s));
+                    return (
+                      <div key={cls} className="flex items-start gap-2 text-[11px]">
+                        <Badge variant="outline" className="text-[10px] shrink-0">{cls}</Badge>
+                        <span className={matched.length === 0 ? "text-destructive italic" : "text-muted-foreground"}>
+                          {matched.length === 0 ? "No matching subjects — will be skipped" : `${matched.length} day${matched.length !== 1 ? "s" : ""}: ${matched.join(", ")}`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <Button onClick={handleAutoGenerateSchedule} className="w-full gap-2"><Sparkles className="w-4 h-4" /> Generate per-class for {selectedExam?.classes?.length || 0} class{(selectedExam?.classes?.length || 0) !== 1 ? "es" : ""}</Button>
           </div>
         </DialogContent>
       </Dialog>
