@@ -662,6 +662,28 @@ export default function StudentsPage() {
               <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
                 <Users className="w-3 h-3" /> {studentCount} students
               </div>
+              {senior && classStudents.length > 0 && (
+                <div className="mb-1.5">
+                  {missingCount > 0 ? (
+                    <Badge
+                      variant="destructive"
+                      className="text-[10px] px-1.5 py-0 gap-1"
+                      title={`${missingCount} student${missingCount !== 1 ? "s" : ""} in Class ${cls.name} ${missingCount === 1 ? "has" : "have"} no subjects assigned`}
+                    >
+                      <AlertTriangle className="w-2.5 h-2.5" />
+                      {missingCount} missing subjects
+                    </Badge>
+                  ) : (
+                    <Badge
+                      className="text-[10px] px-1.5 py-0 gap-1 bg-emerald-600 hover:bg-emerald-600 text-white border-0"
+                      title="All students have subjects assigned"
+                    >
+                      <BookOpen className="w-2.5 h-2.5" />
+                      All assigned
+                    </Badge>
+                  )}
+                </div>
+              )}
               <div className="flex flex-wrap gap-1">
                 {cls.sections.map((s) => {
                   const ct = getClassTeacher(cls.name, s.name);
