@@ -43,6 +43,8 @@ export default function StudentsPage() {
   const [classFeeDefaults, setClassFeeDefaults] = useState<Record<string, number>>({});
   const [credentialsDialog, setCredentialsDialog] = useState<{ admissionNumber: string; password: string; studentName: string } | null>(null);
   const [studentSubjectsMap, setStudentSubjectsMap] = useState<Record<string, string[]>>({});
+  const [seniorSubjectsMap, setSeniorSubjectsMap] = useState<Record<string, string[]>>({});
+  const [bulkAppend, setBulkAppend] = useState(false);
   const { staff } = useSchool();
 
   useEffect(() => {
