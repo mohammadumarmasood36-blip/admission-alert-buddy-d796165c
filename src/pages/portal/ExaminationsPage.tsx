@@ -158,32 +158,58 @@ export default function ExaminationsPage() {
     if (selectedExam) fetchExamDetails(selectedExam.id);
   }, [selectedExam, fetchExamDetails]);
 
-  // Load actual subjects assigned to students in the exam's classes (union of student_subjects).
-  // Falls back to class_subjects master list if no students have subjects yet.
+  // Load actual subjects assigned to students per class. Falls back to class_subjects master list per class.
   useEffect(() => {
     if (!autoScheduleOpen || !selectedExam) return;
     const examClasses = selectedExam.classes || [];
-    if (examClasses.length === 0) { setAvailableAutoSubjects([]); return; }
+    if (examClasses.length === 0) {
+      setAvailableAutoSubjects([]);
+      setPerClassSubjects({});
+      return;
+    }
     setLoadingAutoSubjects(true);
     (async () => {
-      const studentIds = students.filter((s) => examClasses.includes(s.className)).map((s) => s.id);
-      const found = new Set<string>();
+      const perClass: Record<string, Set<string>> = {};
+      examClasses.forEach((c) => { perClass[c] = new Set(); });
+
+      // Map student.id -> className for the exam's classes
+      const examStudents = students.filter((s) => examClasses.includes(s.className));
+      const idToClass: Record<string, string> = {};
+      examStudents.forEach((s) => { idToClass[s.id] = s.className; });
+      const studentIds = examStudents.map((s) => s.id);
+
       if (studentIds.length > 0) {
         const { data } = await supabase
           .from("student_subjects")
-          .select("subject_name")
+          .select("student_id, subject_name")
           .in("student_id", studentIds);
-        (data || []).forEach((r: any) => found.add(r.subject_name));
+        (data || []).forEach((r: any) => {
+          const cls = idToClass[r.student_id];
+          if (cls) perClass[cls].add(r.subject_name);
+        });
       }
-      // Fallback to class master list
-      if (found.size === 0) {
+
+      // For any class with no student-assigned subjects, fall back to class_subjects master
+      const fallbackClasses = examClasses.filter((c) => perClass[c].size === 0);
+      if (fallbackClasses.length > 0) {
         const { data } = await supabase
           .from("class_subjects")
-          .select("subject_name")
-          .in("class_name", examClasses);
-        (data || []).forEach((r: any) => found.add(r.subject_name));
+          .select("class_name, subject_name")
+          .in("class_name", fallbackClasses);
+        (data || []).forEach((r: any) => {
+          if (perClass[r.class_name]) perClass[r.class_name].add(r.subject_name);
+        });
       }
-      setAvailableAutoSubjects(Array.from(found).sort());
+
+      const perClassObj: Record<string, string[]> = {};
+      const union = new Set<string>();
+      Object.entries(perClass).forEach(([cls, set]) => {
+        const arr = Array.from(set).sort();
+        perClassObj[cls] = arr;
+        arr.forEach((s) => union.add(s));
+      });
+      setPerClassSubjects(perClassObj);
+      setAvailableAutoSubjects(Array.from(union).sort());
       setLoadingAutoSubjects(false);
     })();
   }, [autoScheduleOpen, selectedExam, students]);
