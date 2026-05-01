@@ -282,29 +282,50 @@ export default function ExaminationsPage() {
     }
     const examClasses = selectedExam.classes || [];
     const entries: any[] = [];
-    let currentDate = new Date(autoStartDate);
+    const perClassCounts: { cls: string; count: number }[] = [];
+    let roomCursor = 0;
 
-    for (let i = 0; i < autoSubjects.length; i++) {
-      const dateStr = currentDate.toISOString().split("T")[0];
-      for (const cls of examClasses) {
+    // Generate per-class: each class advances its own date pointer using only its own subjects.
+    for (const cls of examClasses) {
+      // Subjects this class actually has, in the order the user picked
+      const classSubs = perClassSubjects[cls] || [];
+      const subsForClass = autoSubjects.filter((s) => classSubs.includes(s));
+      if (subsForClass.length === 0) {
+        perClassCounts.push({ cls, count: 0 });
+        continue;
+      }
+      let currentDate = new Date(autoStartDate);
+      for (let i = 0; i < subsForClass.length; i++) {
+        const dateStr = currentDate.toISOString().split("T")[0];
         entries.push({
           examination_id: selectedExam.id,
-          subject: autoSubjects[i],
+          subject: subsForClass[i],
           date: dateStr,
           start_time: autoStartTime,
           end_time: autoEndTime,
-          room: rooms[i % rooms.length],
+          room: rooms[roomCursor % rooms.length],
           class: cls,
         });
+        roomCursor++;
+        // Advance to next day, skip Sundays
+        currentDate.setDate(currentDate.getDate() + 1);
+        if (currentDate.getDay() === 0) currentDate.setDate(currentDate.getDate() + 1);
       }
-      // Skip Sundays
-      currentDate.setDate(currentDate.getDate() + 1);
-      if (currentDate.getDay() === 0) currentDate.setDate(currentDate.getDate() + 1);
+      perClassCounts.push({ cls, count: subsForClass.length });
+    }
+
+    if (entries.length === 0) {
+      toast.error("None of the selected subjects match any class. Pick subjects assigned to these classes.");
+      return;
     }
 
     const { error } = await supabase.from("exam_schedules").insert(entries);
     if (error) { toast.error("Failed to generate schedule"); return; }
-    toast.success(`Auto-generated ${entries.length} schedule entries`);
+    const summary = perClassCounts
+      .filter((p) => p.count > 0)
+      .map((p) => `${p.cls}: ${p.count}`)
+      .join(" • ");
+    toast.success(`Generated ${entries.length} entries — ${summary}`);
     setAutoScheduleOpen(false);
     setAutoSubjects([]);
     setAutoStartDate("");
