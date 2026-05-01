@@ -360,6 +360,7 @@ export default function StudentsPage() {
     const visible = getSortedStudents(viewClass);
     setBulkSelectedIds(visible.map((s) => s.id));
     setBulkSubjects([]);
+    setBulkAppend(false);
     setBulkOpen(true);
   };
 
