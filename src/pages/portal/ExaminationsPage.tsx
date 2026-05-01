@@ -710,12 +710,40 @@ export default function ExaminationsPage() {
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Pulled from students' enrolled subjects. Order = exam day order. Sundays auto-skipped.
+                    Pulled from each class's enrolled subjects. Order = exam day order. Sundays auto-skipped.
                   </p>
                 </>
               )}
             </div>
-            <Button onClick={handleAutoGenerateSchedule} className="w-full gap-2"><Sparkles className="w-4 h-4" /> Generate for all {selectedExam?.classes?.length || 0} classes</Button>
+
+            {/* Per-class breakdown */}
+            {!loadingAutoSubjects && Object.keys(perClassSubjects).length > 1 && autoSubjects.length > 0 && (
+              <div className="border border-border rounded-lg p-3 bg-muted/30 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <GraduationCap className="w-3.5 h-3.5 text-primary" />
+                  Per-class timetable preview
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Each class gets only the subjects it has assigned. Classes with fewer subjects finish earlier.
+                </p>
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                  {(selectedExam?.classes || []).map((cls) => {
+                    const classSubs = perClassSubjects[cls] || [];
+                    const matched = autoSubjects.filter((s) => classSubs.includes(s));
+                    return (
+                      <div key={cls} className="flex items-start gap-2 text-[11px]">
+                        <Badge variant="outline" className="text-[10px] shrink-0">{cls}</Badge>
+                        <span className={matched.length === 0 ? "text-destructive italic" : "text-muted-foreground"}>
+                          {matched.length === 0 ? "No matching subjects — will be skipped" : `${matched.length} day${matched.length !== 1 ? "s" : ""}: ${matched.join(", ")}`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <Button onClick={handleAutoGenerateSchedule} className="w-full gap-2"><Sparkles className="w-4 h-4" /> Generate per-class for {selectedExam?.classes?.length || 0} class{(selectedExam?.classes?.length || 0) !== 1 ? "es" : ""}</Button>
           </div>
         </DialogContent>
       </Dialog>
