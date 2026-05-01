@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import DashboardLayout from "@/components/portal/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
 import { useSchool } from "@/context/SchoolContext";
@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ClipboardList, Calendar, Award, FileText, MapPin, Clock, Download, Printer, ArrowLeft, Eye, Loader2, Sparkles, GraduationCap } from "lucide-react";
+import { Plus, Pencil, Trash2, ClipboardList, Calendar, Award, FileText, MapPin, Clock, Download, Printer, ArrowLeft, Eye, Loader2, Sparkles, GraduationCap, ChevronDown, ChevronRight } from "lucide-react";
 import { exportSeatingPlanPDF, exportTimetablePDF, exportReportCardPDF } from "@/lib/pdfExport";
 import { supabase } from "@/integrations/supabase/client";
 import SeatingArrangement from "@/components/portal/SeatingArrangement";
@@ -128,6 +128,34 @@ export default function ExaminationsPage() {
   const [perClassSubjects, setPerClassSubjects] = useState<Record<string, string[]>>({});
   const [loadingAutoSubjects, setLoadingAutoSubjects] = useState(false);
   const [admitCardClass, setAdmitCardClass] = useState<string | null>(null);
+  const [expandedPreviewClasses, setExpandedPreviewClasses] = useState<Record<string, boolean>>({});
+
+  // Compute exact entries (subject + date + room) per class — mirrors handleAutoGenerateSchedule
+  const previewByClass = useMemo(() => {
+    const result: Record<string, { subject: string; date: string; room: string }[]> = {};
+    if (!selectedExam || !autoStartDate || autoSubjects.length === 0) return result;
+    const examClasses = selectedExam.classes || [];
+    let roomCursor = 0;
+    for (const cls of examClasses) {
+      const classSubs = perClassSubjects[cls] || [];
+      const subsForClass = autoSubjects.filter((s) => classSubs.includes(s));
+      const items: { subject: string; date: string; room: string }[] = [];
+      if (subsForClass.length === 0) { result[cls] = items; continue; }
+      const currentDate = new Date(autoStartDate);
+      for (let i = 0; i < subsForClass.length; i++) {
+        items.push({
+          subject: subsForClass[i],
+          date: currentDate.toISOString().split("T")[0],
+          room: rooms[roomCursor % rooms.length],
+        });
+        roomCursor++;
+        currentDate.setDate(currentDate.getDate() + 1);
+        if (currentDate.getDay() === 0) currentDate.setDate(currentDate.getDate() + 1);
+      }
+      result[cls] = items;
+    }
+    return result;
+  }, [selectedExam, autoStartDate, autoSubjects, perClassSubjects]);
 
 
   const [resultDialogOpen, setResultDialogOpen] = useState(false);
@@ -682,7 +710,7 @@ export default function ExaminationsPage() {
         </div>
       {/* Auto Schedule Dialog */}
       <Dialog open={autoScheduleOpen} onOpenChange={setAutoScheduleOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5 text-primary" /> Auto Generate Schedule</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             <div><Label>Start Date</Label><Input type="date" value={autoStartDate} onChange={e => setAutoStartDate(e.target.value)} className="mt-1" /></div>
@@ -716,29 +744,68 @@ export default function ExaminationsPage() {
               )}
             </div>
 
-            {/* Per-class breakdown */}
-            {!loadingAutoSubjects && Object.keys(perClassSubjects).length > 1 && autoSubjects.length > 0 && (
+            {/* Per-class breakdown — clickable preview of generated entries */}
+            {!loadingAutoSubjects && (selectedExam?.classes?.length || 0) > 0 && autoSubjects.length > 0 && autoStartDate && (
               <div className="border border-border rounded-lg p-3 bg-muted/30 space-y-2">
                 <div className="flex items-center gap-2 text-xs font-semibold">
                   <GraduationCap className="w-3.5 h-3.5 text-primary" />
                   Per-class timetable preview
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Each class gets only the subjects it has assigned. Classes with fewer subjects finish earlier.
+                  Click a class to see the exact subjects, dates and rooms that will be created. Sundays auto-skipped.
                 </p>
-                <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                <div className="space-y-1.5 max-h-72 overflow-y-auto">
                   {(selectedExam?.classes || []).map((cls) => {
-                    const classSubs = perClassSubjects[cls] || [];
-                    const matched = autoSubjects.filter((s) => classSubs.includes(s));
+                    const items = previewByClass[cls] || [];
+                    const isOpen = !!expandedPreviewClasses[cls];
+                    const empty = items.length === 0;
                     return (
-                      <div key={cls} className="flex items-start gap-2 text-[11px]">
-                        <Badge variant="outline" className="text-[10px] shrink-0">{cls}</Badge>
-                        <span className={matched.length === 0 ? "text-destructive italic" : "text-muted-foreground"}>
-                          {matched.length === 0 ? "No matching subjects — will be skipped" : `${matched.length} day${matched.length !== 1 ? "s" : ""}: ${matched.join(", ")}`}
-                        </span>
+                      <div key={cls} className="border border-border rounded-md bg-background">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedPreviewClasses(p => ({ ...p, [cls]: !p[cls] }))}
+                          className="w-full flex items-center gap-2 p-2 text-left hover:bg-accent/50 transition-colors rounded-md"
+                          disabled={empty}
+                        >
+                          {empty ? (
+                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-30" />
+                          ) : isOpen ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-primary" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                          )}
+                          <Badge variant="outline" className="text-[10px] shrink-0">{cls}</Badge>
+                          <span className={`text-[11px] flex-1 ${empty ? "text-destructive italic" : "text-muted-foreground"}`}>
+                            {empty
+                              ? "No matching subjects — will be skipped"
+                              : `${items.length} day${items.length !== 1 ? "s" : ""} • ${items[0].date} → ${items[items.length - 1].date}`}
+                          </span>
+                        </button>
+                        {isOpen && !empty && (
+                          <div className="border-t border-border px-2 py-1.5 space-y-1">
+                            {items.map((it, idx) => {
+                              const d = new Date(it.date);
+                              const dayName = d.toLocaleDateString(undefined, { weekday: "short" });
+                              return (
+                                <div key={idx} className="grid grid-cols-[24px_1fr_auto_auto] gap-2 items-center text-[11px] py-1 border-b border-border/50 last:border-0">
+                                  <span className="text-muted-foreground font-mono">{idx + 1}.</span>
+                                  <span className="font-medium truncate">{it.subject}</span>
+                                  <span className="text-muted-foreground whitespace-nowrap">{dayName} {it.date}</span>
+                                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{it.room}</Badge>
+                                </div>
+                              );
+                            })}
+                            <div className="text-[10px] text-muted-foreground pt-1">
+                              {autoStartTime}–{autoEndTime}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
+                </div>
+                <div className="text-[11px] font-medium text-foreground pt-1 border-t border-border">
+                  Total entries to create: {Object.values(previewByClass).reduce((sum, arr) => sum + arr.length, 0)}
                 </div>
               </div>
             )}
