@@ -373,14 +373,51 @@ export default function StudentsPage() {
     if (bulkSubjects.length === 0) { toast.error("Select at least one subject"); return; }
     setBulkSaving(true);
     try {
-      await supabase.from("student_subjects").delete().in("student_id", bulkSelectedIds);
-      const rows = bulkSelectedIds.flatMap((sid) => bulkSubjects.map((sub) => ({ student_id: sid, subject_name: sub })));
-      const { error } = await supabase.from("student_subjects").insert(rows);
-      if (error) throw error;
+      // Compute new per-student subject sets
+      const newPerStudent: Record<string, string[]> = {};
+
+      if (bulkAppend) {
+        // Fetch current rows for selected students, merge new subjects (dedupe), only insert what's missing
+        const { data: existing } = await supabase
+          .from("student_subjects")
+          .select("student_id, subject_name")
+          .in("student_id", bulkSelectedIds);
+        const existingMap: Record<string, Set<string>> = {};
+        (existing || []).forEach((r: any) => {
+          if (!existingMap[r.student_id]) existingMap[r.student_id] = new Set();
+          existingMap[r.student_id].add(r.subject_name);
+        });
+        const rows: { student_id: string; subject_name: string }[] = [];
+        bulkSelectedIds.forEach((sid) => {
+          const have = existingMap[sid] || new Set<string>();
+          bulkSubjects.forEach((sub) => {
+            if (!have.has(sub)) rows.push({ student_id: sid, subject_name: sub });
+          });
+          newPerStudent[sid] = Array.from(new Set([...(studentSubjectsMap[sid] || []), ...bulkSubjects]));
+        });
+        if (rows.length > 0) {
+          const { error } = await supabase.from("student_subjects").insert(rows);
+          if (error) throw error;
+        }
+      } else {
+        await supabase.from("student_subjects").delete().in("student_id", bulkSelectedIds);
+        const rows = bulkSelectedIds.flatMap((sid) => bulkSubjects.map((sub) => ({ student_id: sid, subject_name: sub })));
+        const { error } = await supabase.from("student_subjects").insert(rows);
+        if (error) throw error;
+        bulkSelectedIds.forEach((sid) => { newPerStudent[sid] = [...bulkSubjects]; });
+      }
+
       const newMap = { ...studentSubjectsMap };
-      bulkSelectedIds.forEach((sid) => { newMap[sid] = [...bulkSubjects]; });
+      const newSeniorMap = { ...seniorSubjectsMap };
+      Object.entries(newPerStudent).forEach(([sid, subs]) => {
+        newMap[sid] = subs;
+        newSeniorMap[sid] = subs;
+      });
       setStudentSubjectsMap(newMap);
-      toast.success(`Assigned ${bulkSubjects.length} subject${bulkSubjects.length !== 1 ? "s" : ""} to ${bulkSelectedIds.length} student${bulkSelectedIds.length !== 1 ? "s" : ""}`);
+      setSeniorSubjectsMap(newSeniorMap);
+      toast.success(
+        `${bulkAppend ? "Appended" : "Assigned"} ${bulkSubjects.length} subject${bulkSubjects.length !== 1 ? "s" : ""} to ${bulkSelectedIds.length} student${bulkSelectedIds.length !== 1 ? "s" : ""}`
+      );
       setBulkOpen(false);
     } catch (e: any) {
       toast.error(e.message || "Failed to bulk-assign subjects");
