@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ClipboardList, Calendar, Award, FileText, MapPin, Clock, Download, Printer, ArrowLeft, Eye, Loader2, Sparkles, GraduationCap } from "lucide-react";
+import { Plus, Pencil, Trash2, ClipboardList, Calendar, Award, FileText, MapPin, Clock, Download, Printer, ArrowLeft, Eye, Loader2, Sparkles, GraduationCap, ChevronDown, ChevronRight } from "lucide-react";
 import { exportSeatingPlanPDF, exportTimetablePDF, exportReportCardPDF } from "@/lib/pdfExport";
 import { supabase } from "@/integrations/supabase/client";
 import SeatingArrangement from "@/components/portal/SeatingArrangement";
