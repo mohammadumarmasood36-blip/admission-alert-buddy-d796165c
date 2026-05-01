@@ -1110,7 +1110,29 @@ export default function StudentsPage() {
           </DialogHeader>
           <div className="space-y-5 mt-4">
             <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm text-muted-foreground">
-              Select students and the subjects to assign. This <strong>replaces</strong> existing subject selections for chosen students.
+              Select students and the subjects to assign.{" "}
+              {bulkAppend ? (
+                <>New subjects will be <strong className="text-foreground">added on top of</strong> existing ones (duplicates skipped).</>
+              ) : (
+                <>This <strong className="text-destructive">replaces</strong> existing subject selections for chosen students.</>
+              )}
+            </div>
+
+            {/* Append vs Replace Toggle */}
+            <div className="flex items-center justify-between border border-border rounded-lg p-3">
+              <div>
+                <Label htmlFor="bulk-append-toggle" className="text-sm font-semibold cursor-pointer">
+                  Append instead of replace
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Keep each student's existing subjects and merge in the new ones.
+                </p>
+              </div>
+              <Switch
+                id="bulk-append-toggle"
+                checked={bulkAppend}
+                onCheckedChange={setBulkAppend}
+              />
             </div>
 
             {/* Subjects */}
