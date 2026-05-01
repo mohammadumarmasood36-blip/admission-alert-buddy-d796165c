@@ -635,6 +635,11 @@ export default function StudentsPage() {
           ];
           const color = colorPalette[index % colorPalette.length];
           const isSelected = viewClass === cls.name;
+          const senior = isSeniorClass(cls.name);
+          const classStudents = students.filter((s) => s.className === cls.name);
+          const missingCount = senior
+            ? classStudents.filter((s) => !seniorSubjectsMap[s.id] || seniorSubjectsMap[s.id].length === 0).length
+            : 0;
 
           return (
             <div
