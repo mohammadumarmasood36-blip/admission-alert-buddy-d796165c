@@ -125,6 +125,7 @@ export default function ExaminationsPage() {
   const [autoEndTime, setAutoEndTime] = useState("12:00");
   const [autoSubjects, setAutoSubjects] = useState<string[]>([]);
   const [availableAutoSubjects, setAvailableAutoSubjects] = useState<string[]>([]);
+  const [perClassSubjects, setPerClassSubjects] = useState<Record<string, string[]>>({});
   const [loadingAutoSubjects, setLoadingAutoSubjects] = useState(false);
   const [admitCardClass, setAdmitCardClass] = useState<string | null>(null);
 
