@@ -128,6 +128,34 @@ export default function ExaminationsPage() {
   const [perClassSubjects, setPerClassSubjects] = useState<Record<string, string[]>>({});
   const [loadingAutoSubjects, setLoadingAutoSubjects] = useState(false);
   const [admitCardClass, setAdmitCardClass] = useState<string | null>(null);
+  const [expandedPreviewClasses, setExpandedPreviewClasses] = useState<Record<string, boolean>>({});
+
+  // Compute exact entries (subject + date + room) per class — mirrors handleAutoGenerateSchedule
+  const previewByClass = useMemo(() => {
+    const result: Record<string, { subject: string; date: string; room: string }[]> = {};
+    if (!selectedExam || !autoStartDate || autoSubjects.length === 0) return result;
+    const examClasses = selectedExam.classes || [];
+    let roomCursor = 0;
+    for (const cls of examClasses) {
+      const classSubs = perClassSubjects[cls] || [];
+      const subsForClass = autoSubjects.filter((s) => classSubs.includes(s));
+      const items: { subject: string; date: string; room: string }[] = [];
+      if (subsForClass.length === 0) { result[cls] = items; continue; }
+      const currentDate = new Date(autoStartDate);
+      for (let i = 0; i < subsForClass.length; i++) {
+        items.push({
+          subject: subsForClass[i],
+          date: currentDate.toISOString().split("T")[0],
+          room: rooms[roomCursor % rooms.length],
+        });
+        roomCursor++;
+        currentDate.setDate(currentDate.getDate() + 1);
+        if (currentDate.getDay() === 0) currentDate.setDate(currentDate.getDate() + 1);
+      }
+      result[cls] = items;
+    }
+    return result;
+  }, [selectedExam, autoStartDate, autoSubjects, perClassSubjects]);
 
 
   const [resultDialogOpen, setResultDialogOpen] = useState(false);
