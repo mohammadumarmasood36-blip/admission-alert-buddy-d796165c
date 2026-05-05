@@ -60,6 +60,8 @@ export default function AppSidebar() {
     ? cashierNavItems
     : user?.role === "exam_incharge"
     ? examInchargeNavItems
+    : user?.role === "teacher"
+    ? teacherNavItems
     : user?.role === "principal"
     ? principalNavItems
     : managerNavItems;
