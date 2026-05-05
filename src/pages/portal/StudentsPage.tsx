@@ -512,7 +512,7 @@ export default function StudentsPage() {
                   }}>
                     <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                     <SelectContent className="max-h-60">
-                      {ALL_CLASSES.map((cls) => (
+                      {allowedClasses.map((cls) => (
                         <SelectItem key={cls} value={cls}>Class {cls}</SelectItem>
                       ))}
                     </SelectContent>
