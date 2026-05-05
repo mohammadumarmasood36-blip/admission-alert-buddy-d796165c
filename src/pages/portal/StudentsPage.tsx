@@ -22,7 +22,8 @@ import type { Student } from "@/context/SchoolContext";
 export default function StudentsPage() {
   const { students, addStudent, removeStudent, updateStudent, classes, addSection, removeSection } = useSchool();
   const { user } = useAuth();
-  const canAddStudents = user?.role === "cashier" || user?.role === "teacher";
+  const isTeacher = user?.role === "teacher";
+  const canAddStudents = user?.role === "cashier" || isTeacher;
   const isViewOnly = !canAddStudents;
   const [addOpen, setAddOpen] = useState(false);
   const [sectionOpen, setSectionOpen] = useState(false);
