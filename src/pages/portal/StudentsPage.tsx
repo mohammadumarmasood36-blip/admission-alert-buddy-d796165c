@@ -216,6 +216,10 @@ export default function StudentsPage() {
   };
 
   const handleAdd = async () => {
+    if (isTeacher && !allowedClasses.includes(formData.className)) {
+      toast.error("You can only add students to your assigned class");
+      return;
+    }
     if (!formData.name.trim() || !formData.feeAmount) {
       toast.error("Please fill required fields (Name & Fee Amount)");
       return;
