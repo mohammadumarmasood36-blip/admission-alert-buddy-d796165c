@@ -216,9 +216,18 @@ export default function StudentsPage() {
   };
 
   const handleAdd = async () => {
-    if (isTeacher && !allowedClasses.includes(formData.className)) {
-      toast.error("You can only add students to your assigned class");
-      return;
+    if (isTeacher) {
+      if (teacherAssignments.length === 0) {
+        toast.error("You have no assigned classes. Ask an admin to assign you a class & section before adding students.");
+        return;
+      }
+      if (!allowedClasses.includes(formData.className)) {
+        const allowedSummary = teacherAssignments
+          .map((a) => `${a.class_name}-${a.section_name}`)
+          .join(", ");
+        toast.error(`You can only add students to your assigned class & section. Allowed: ${allowedSummary}`);
+        return;
+      }
     }
     if (!formData.name.trim() || !formData.feeAmount) {
       toast.error("Please fill required fields (Name & Fee Amount)");
@@ -234,8 +243,32 @@ export default function StudentsPage() {
     }
     const autoSection = getAutoSection(formData.className);
     if (!autoSection) {
-      toast.error("Please add at least one section to this class first");
+      if (isTeacher) {
+        const allowedSummary = teacherAssignments
+          .filter((a) => a.class_name === formData.className)
+          .map((a) => a.section_name)
+          .join(", ");
+        toast.error(
+          allowedSummary
+            ? `No available section in ${formData.className}. You can add to sections: ${allowedSummary}`
+            : `You are not assigned to any section in ${formData.className}.`
+        );
+      } else {
+        toast.error("Please add at least one section to this class first");
+      }
       return;
+    }
+    if (isTeacher) {
+      const isAllowedPair = teacherAssignments.some(
+        (a) => a.class_name === formData.className && a.section_name === autoSection
+      );
+      if (!isAllowedPair) {
+        const allowedSummary = teacherAssignments
+          .map((a) => `${a.class_name}-${a.section_name}`)
+          .join(", ");
+        toast.error(`You can only add students to: ${allowedSummary}`);
+        return;
+      }
     }
 
     const result = await addStudent({
