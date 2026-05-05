@@ -284,10 +284,17 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
 
   const addStudent = async (data: Omit<Student, "id" | "admissionNumber" | "rollNumber" | "feePaid" | "enrollDate" | "installments" | "paymentMode">): Promise<{ admissionNumber: string; password: string; studentName: string } | null> => {
     try {
-      // Get next admission number
-      const counterRes = await supabase.from("app_settings").select("value").eq("key", "admission_counter").single();
-      let counter = counterRes.data ? parseInt(counterRes.data.value) : 0;
-      counter += 1;
+      // Get next admission number — use max of (counter, max existing numeric admission_number) + 1
+      const [counterRes, maxRes] = await Promise.all([
+        supabase.from("app_settings").select("value").eq("key", "admission_counter").maybeSingle(),
+        supabase.from("students").select("admission_number"),
+      ]);
+      const counterVal = counterRes.data ? parseInt(counterRes.data.value) || 0 : 0;
+      const existingMax = (maxRes.data || [])
+        .map((r: any) => parseInt(String(r.admission_number).replace(/\D/g, ""), 10))
+        .filter((n: number) => !isNaN(n))
+        .reduce((a: number, b: number) => Math.max(a, b), 0);
+      const counter = Math.max(counterVal, existingMax) + 1;
       const admissionNumber = String(counter).padStart(4, "0");
 
       const { data: result, error } = await supabase.from("students").insert({
@@ -315,8 +322,13 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       }).select().single();
       if (error) throw error;
 
-      // Update counter
-      await supabase.from("app_settings").upsert({ key: "admission_counter", value: String(counter) });
+      // Update counter (manual upsert by unique key to avoid conflict-target ambiguity)
+      const { data: existingCounter } = await supabase.from("app_settings").select("id").eq("key", "admission_counter").maybeSingle();
+      if (existingCounter) {
+        await supabase.from("app_settings").update({ value: String(counter) }).eq("key", "admission_counter");
+      } else {
+        await supabase.from("app_settings").insert({ key: "admission_counter", value: String(counter) });
+      }
 
       if (result) setStudents((prev) => [...prev, mapStudentRow(result)]);
 

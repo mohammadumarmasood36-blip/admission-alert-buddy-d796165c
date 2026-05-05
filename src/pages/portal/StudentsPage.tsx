@@ -22,7 +22,8 @@ import type { Student } from "@/context/SchoolContext";
 export default function StudentsPage() {
   const { students, addStudent, removeStudent, updateStudent, classes, addSection, removeSection } = useSchool();
   const { user } = useAuth();
-  const canAddStudents = user?.role === "cashier" || user?.role === "teacher";
+  const isTeacher = user?.role === "teacher";
+  const canAddStudents = user?.role === "cashier" || isTeacher;
   const isViewOnly = !canAddStudents;
   const [addOpen, setAddOpen] = useState(false);
   const [sectionOpen, setSectionOpen] = useState(false);
@@ -141,6 +142,26 @@ export default function StudentsPage() {
   const currentClassData = classes.find((c) => c.name === formData.className);
   const selectedClassData = classes.find((c) => c.name === selectedClass);
 
+  // Teacher's allowed (class, section) pairs from class_teacher_assignments
+  const teacherAssignments = useMemo(() => {
+    if (!isTeacher || !user?.id) return [] as { class_name: string; section_name: string }[];
+    return classTeachers.filter((a) => a.staff_id === user.id);
+  }, [isTeacher, user?.id, classTeachers]);
+
+  const teacherClasses = useMemo(
+    () => Array.from(new Set(teacherAssignments.map((a) => a.class_name))) as ClassName[],
+    [teacherAssignments]
+  );
+
+  // Adjust default class for teachers when assignments load
+  useEffect(() => {
+    if (isTeacher && teacherClasses.length > 0 && !teacherClasses.includes(formData.className)) {
+      setFormData((p) => ({ ...p, className: teacherClasses[0] }));
+    }
+  }, [isTeacher, teacherClasses]);
+
+  const allowedClasses = isTeacher ? teacherClasses : (ALL_CLASSES as readonly ClassName[]);
+
   // Auto-generate admission number (4-digit numeric only)
   const nextAdmissionNumber = useMemo(() => {
     const existingNums = students
@@ -150,9 +171,15 @@ export default function StudentsPage() {
     return String(maxNum + 1).padStart(4, "0");
   }, [students]);
 
-  // Auto-assign section (pick the section with fewest students)
+  // Auto-assign section (pick the section with fewest students). For teachers, restrict to assigned sections.
   const getAutoSection = (className: ClassName): string => {
-    const classSections = classes.find((c) => c.name === className)?.sections || [];
+    let classSections = classes.find((c) => c.name === className)?.sections || [];
+    if (isTeacher) {
+      const allowed = teacherAssignments
+        .filter((a) => a.class_name === className)
+        .map((a) => a.section_name);
+      classSections = classSections.filter((s) => allowed.includes(s.name));
+    }
     if (classSections.length === 0) return "";
     if (classSections.length === 1) return classSections[0].name;
 
@@ -189,6 +216,10 @@ export default function StudentsPage() {
   };
 
   const handleAdd = async () => {
+    if (isTeacher && !allowedClasses.includes(formData.className)) {
+      toast.error("You can only add students to your assigned class");
+      return;
+    }
     if (!formData.name.trim() || !formData.feeAmount) {
       toast.error("Please fill required fields (Name & Fee Amount)");
       return;
@@ -485,7 +516,7 @@ export default function StudentsPage() {
                   }}>
                     <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                     <SelectContent className="max-h-60">
-                      {ALL_CLASSES.map((cls) => (
+                      {allowedClasses.map((cls) => (
                         <SelectItem key={cls} value={cls}>Class {cls}</SelectItem>
                       ))}
                     </SelectContent>

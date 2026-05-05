@@ -45,6 +45,11 @@ const examInchargeNavItems = [
   { to: "/portal/students", label: "Students", icon: GraduationCap },
 ];
 
+const teacherNavItems = [
+  { to: "/portal", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/portal/students", label: "Students", icon: GraduationCap },
+];
+
 export default function AppSidebar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -55,6 +60,8 @@ export default function AppSidebar() {
     ? cashierNavItems
     : user?.role === "exam_incharge"
     ? examInchargeNavItems
+    : user?.role === "teacher"
+    ? teacherNavItems
     : user?.role === "principal"
     ? principalNavItems
     : managerNavItems;
