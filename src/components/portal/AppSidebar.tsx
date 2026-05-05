@@ -45,6 +45,11 @@ const examInchargeNavItems = [
   { to: "/portal/students", label: "Students", icon: GraduationCap },
 ];
 
+const teacherNavItems = [
+  { to: "/portal", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/portal/students", label: "Students", icon: GraduationCap },
+];
+
 export default function AppSidebar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
