@@ -322,8 +322,13 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
       }).select().single();
       if (error) throw error;
 
-      // Update counter
-      await supabase.from("app_settings").upsert({ key: "admission_counter", value: String(counter) });
+      // Update counter (manual upsert by unique key to avoid conflict-target ambiguity)
+      const { data: existingCounter } = await supabase.from("app_settings").select("id").eq("key", "admission_counter").maybeSingle();
+      if (existingCounter) {
+        await supabase.from("app_settings").update({ value: String(counter) }).eq("key", "admission_counter");
+      } else {
+        await supabase.from("app_settings").insert({ key: "admission_counter", value: String(counter) });
+      }
 
       if (result) setStudents((prev) => [...prev, mapStudentRow(result)]);
 
