@@ -69,10 +69,9 @@ async function loadSetting(key: string) {
 
 async function saveSetting(key: string, value: any) {
   const jsonValue = JSON.stringify(value);
-  const { data: existing } = await supabase.from("app_settings").select("key").eq("key", key).maybeSingle();
+  const { data: existing } = await supabase.from("app_settings").select("id").eq("key", key).maybeSingle();
   if (existing) {
-    // Use upsert since we can't UPDATE via RLS insert-only
-    const { error } = await supabase.from("app_settings").upsert({ key, value: jsonValue });
+    const { error } = await supabase.from("app_settings").update({ value: jsonValue }).eq("key", key);
     if (error) throw error;
   } else {
     const { error } = await supabase.from("app_settings").insert({ key, value: jsonValue });
