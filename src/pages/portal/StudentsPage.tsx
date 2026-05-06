@@ -727,7 +727,17 @@ export default function StudentsPage() {
                 <p className="text-xs text-muted-foreground mt-1">This password along with admission number will be sent to father & mother mobile</p>
               </div>
 
-              <Button onClick={handleAdd} className="w-full" size="lg">Enroll Student</Button>
+              <Button
+                onClick={handleAdd}
+                className="w-full"
+                size="lg"
+                disabled={
+                  !selectedSection ||
+                  (isTeacher && !isSectionAllowedForTeacher(formData.className, selectedSection))
+                }
+              >
+                Enroll Student
+              </Button>
             </div>
           </DialogContent>
         </Dialog>}
