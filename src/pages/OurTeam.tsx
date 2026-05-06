@@ -52,7 +52,7 @@ const OurTeam = () => {
       const { data, error } = await supabase
         .from("staff")
         .select('id, "Full Name", Photo, join_date, teaching_classes')
-        .eq("Role", "teacher");
+        .ilike("Role", "teacher");
 
       if (!error && data) {
         setTeachers(
