@@ -271,7 +271,7 @@ export default function StudentsPage() {
       toast.error("Please select at least one subject for this class");
       return;
     }
-    const autoSection = getAutoSection(formData.className);
+    const autoSection = selectedSection || getAutoSection(formData.className);
     if (!autoSection) {
       if (isTeacher) {
         const allowedSummary = teacherAssignments
