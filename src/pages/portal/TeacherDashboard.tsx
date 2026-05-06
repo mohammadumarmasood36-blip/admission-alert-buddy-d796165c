@@ -775,3 +775,81 @@ export default function TeacherDashboard() {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────
+// Teacher goal helpers (stored in app_settings as `teacher_goal_<staffId>`)
+// ─────────────────────────────────────────────
+function useTeacherGoal(teacherId: string) {
+  const key = `teacher_goal_${teacherId}`;
+  const [goal, setGoal] = useState<string>("");
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    supabase.from("app_settings").select("value").eq("key", key).maybeSingle().then(({ data }) => {
+      if (cancelled) return;
+      setGoal(data?.value || "");
+      setLoaded(true);
+    });
+    return () => { cancelled = true; };
+  }, [key]);
+  const save = async (next: string) => {
+    const { data: existing } = await supabase.from("app_settings").select("id").eq("key", key).maybeSingle();
+    if (existing) {
+      await supabase.from("app_settings").update({ value: next }).eq("key", key);
+    } else {
+      await supabase.from("app_settings").insert({ key, value: next });
+    }
+    setGoal(next);
+  };
+  return { goal, save, loaded };
+}
+
+function TeacherGoalInline({ teacherId }: { teacherId: string }) {
+  const { goal, loaded } = useTeacherGoal(teacherId);
+  if (!loaded) return null;
+  return (
+    <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 mr-1">
+        <Star className="w-3 h-3" /> Goal:
+      </span>
+      {goal ? goal : <span className="italic">Set your teaching goal in the Profile tab.</span>}
+    </p>
+  );
+}
+
+function TeacherGoal({ teacherId }: { teacherId: string }) {
+  const { goal, save, loaded } = useTeacherGoal(teacherId);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { setDraft(goal); }, [goal]);
+  if (!loaded) return null;
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await save(draft.trim());
+      toast.success("Goal saved");
+    } catch {
+      toast.error("Failed to save goal");
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <div className="border-t pt-4 mt-2">
+      <Label className="text-sm font-semibold flex items-center gap-2">
+        <Star className="w-4 h-4 text-amber-500" /> My Teaching Goal
+      </Label>
+      <Textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        placeholder="e.g. Help every student in my class achieve at least 80% in the next term."
+        rows={3}
+        className="mt-2"
+      />
+      <Button size="sm" className="mt-2 gap-2" onClick={handleSave} disabled={saving || draft === goal}>
+        <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Goal"}
+      </Button>
+    </div>
+  );
+}
+
