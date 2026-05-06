@@ -306,6 +306,23 @@ export default function TeacherDashboard() {
       </header>
 
       <main className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
+        {/* Identity & goal banner */}
+        <Card className="bg-white/90 border-0 shadow-md">
+          <CardContent className="p-4 sm:p-5 flex items-center gap-4">
+            {teacher.photoFile ? (
+              <img src={teacher.photoFile} alt={teacher.name} className="w-16 h-16 rounded-full object-cover ring-2 ring-blue-500/40 flex-shrink-0" />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-white flex items-center justify-center text-2xl font-bold flex-shrink-0">
+                {teacher.name.charAt(0)}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display font-bold text-lg leading-tight truncate">{teacher.name}</h2>
+              <TeacherGoalInline teacherId={teacher.id} />
+            </div>
+          </CardContent>
+        </Card>
+
         <Tabs value={viewTab} onValueChange={setViewTab}>
           <TabsList className="grid grid-cols-6 w-full max-w-2xl bg-white/80 shadow-sm">
             <TabsTrigger value="classes" className="text-xs">Classes</TabsTrigger>
