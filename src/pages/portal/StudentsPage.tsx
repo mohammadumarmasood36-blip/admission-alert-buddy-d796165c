@@ -133,6 +133,7 @@ export default function StudentsPage() {
   });
   const [formSubjects, setFormSubjects] = useState<string[]>([]);
   const [editSubjects, setEditSubjects] = useState<string[]>([]);
+  const [selectedSection, setSelectedSection] = useState<string>("");
 
   // Reset selected subjects when class changes
   useEffect(() => { setFormSubjects([]); }, [formData.className]);
@@ -162,6 +163,21 @@ export default function StudentsPage() {
 
   const allowedClasses = isTeacher ? teacherClasses : (ALL_CLASSES as readonly ClassName[]);
 
+  // Sections allowed for the currently picked class (teachers: only their assigned sections)
+  const allowedSectionNamesForCurrentClass = useMemo(() => {
+    if (!isTeacher) return null; // null = no restriction
+    return new Set(
+      teacherAssignments
+        .filter((a) => a.class_name === formData.className)
+        .map((a) => a.section_name)
+    );
+  }, [isTeacher, teacherAssignments, formData.className]);
+
+  const isClassAllowedForTeacher = (cls: ClassName) =>
+    !isTeacher || teacherAssignments.some((a) => a.class_name === cls);
+  const isSectionAllowedForTeacher = (cls: ClassName, sec: string) =>
+    !isTeacher || teacherAssignments.some((a) => a.class_name === cls && a.section_name === sec);
+
   // Auto-generate admission number (4-digit numeric only)
   const nextAdmissionNumber = useMemo(() => {
     const existingNums = students
@@ -190,6 +206,20 @@ export default function StudentsPage() {
     sectionCounts.sort((a, b) => a.count - b.count);
     return sectionCounts[0].name;
   };
+
+  // Real-time: when class changes (or assignments load), reset section to a valid auto-pick
+  useEffect(() => {
+    const auto = getAutoSection(formData.className);
+    setSelectedSection((prev) => {
+      // If previous selection is still valid for the new class, keep it
+      const stillValid =
+        prev &&
+        (classes.find((c) => c.name === formData.className)?.sections.some((s) => s.name === prev)) &&
+        isSectionAllowedForTeacher(formData.className, prev);
+      return stillValid ? prev : (auto || "");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.className, classes, teacherAssignments]);
 
   // Auto roll number: count students in that class+section sorted by name, assign next
   const getAutoRollNumber = (className: ClassName, section: string): number => {
@@ -241,7 +271,7 @@ export default function StudentsPage() {
       toast.error("Please select at least one subject for this class");
       return;
     }
-    const autoSection = getAutoSection(formData.className);
+    const autoSection = selectedSection || getAutoSection(formData.className);
     if (!autoSection) {
       if (isTeacher) {
         const allowedSummary = teacherAssignments
@@ -549,31 +579,58 @@ export default function StudentsPage() {
                   }}>
                     <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                     <SelectContent className="max-h-60">
-                      {allowedClasses.map((cls) => (
-                        <SelectItem key={cls} value={cls}>Class {cls}</SelectItem>
-                      ))}
+                      {(isTeacher ? (ALL_CLASSES as readonly ClassName[]) : allowedClasses).map((cls) => {
+                        const disabled = !isClassAllowedForTeacher(cls);
+                        return (
+                          <SelectItem key={cls} value={cls} disabled={disabled}>
+                            Class {cls}{disabled ? " (not assigned)" : ""}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              {/* Auto Section Info */}
-              <div className="bg-muted/50 border border-border rounded-lg p-3">
-                <p className="text-xs text-muted-foreground mb-1">Section (Auto-assigned for equal distribution)</p>
-                <div className="flex flex-wrap gap-2">
-                  {currentClassData?.sections.map((s) => {
-                    const count = students.filter((st) => st.className === formData.className && st.section === s.name).length;
-                    const isNext = getAutoSection(formData.className) === s.name;
-                    return (
-                      <Badge key={s.id} variant={isNext ? "default" : "outline"} className="gap-1">
-                        {s.name} ({count} students) {isNext && "← Next"}
-                      </Badge>
-                    );
-                  })}
-                  {(!currentClassData?.sections.length) && (
-                    <p className="text-sm text-destructive">No sections! Add sections to this class first.</p>
-                  )}
-                </div>
+              {/* Section selector — real-time validation */}
+              <div>
+                <Label>Section <span className="text-destructive">*</span></Label>
+                {currentClassData?.sections.length ? (
+                  <>
+                    <Select
+                      value={selectedSection || undefined}
+                      onValueChange={(v) => setSelectedSection(v)}
+                    >
+                      <SelectTrigger className="mt-1.5">
+                        <SelectValue placeholder="Select section" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currentClassData.sections.map((s) => {
+                          const count = students.filter((st) => st.className === formData.className && st.section === s.name).length;
+                          const auto = getAutoSection(formData.className) === s.name;
+                          const allowed = isSectionAllowedForTeacher(formData.className, s.name);
+                          return (
+                            <SelectItem key={s.id} value={s.name} disabled={!allowed}>
+                              Section {s.name} • {count} students{auto ? " — suggested" : ""}{!allowed ? " (not assigned)" : ""}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    {isTeacher && selectedSection && !isSectionAllowedForTeacher(formData.className, selectedSection) && (
+                      <p className="text-xs text-destructive mt-1.5">
+                        You aren't assigned to this section. Pick one of: {Array.from(allowedSectionNamesForCurrentClass || []).join(", ") || "none"}.
+                      </p>
+                    )}
+                    {isTeacher && allowedSectionNamesForCurrentClass && allowedSectionNamesForCurrentClass.size === 0 && (
+                      <p className="text-xs text-destructive mt-1.5">
+                        You have no assigned section in Class {formData.className}.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-destructive mt-1.5">No sections! Add sections to this class first.</p>
+                )}
               </div>
 
               <div>
@@ -670,7 +727,17 @@ export default function StudentsPage() {
                 <p className="text-xs text-muted-foreground mt-1">This password along with admission number will be sent to father & mother mobile</p>
               </div>
 
-              <Button onClick={handleAdd} className="w-full" size="lg">Enroll Student</Button>
+              <Button
+                onClick={handleAdd}
+                className="w-full"
+                size="lg"
+                disabled={
+                  !selectedSection ||
+                  (isTeacher && !isSectionAllowedForTeacher(formData.className, selectedSection))
+                }
+              >
+                Enroll Student
+              </Button>
             </div>
           </DialogContent>
         </Dialog>}
