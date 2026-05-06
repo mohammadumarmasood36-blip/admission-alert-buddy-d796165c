@@ -207,6 +207,20 @@ export default function StudentsPage() {
     return sectionCounts[0].name;
   };
 
+  // Real-time: when class changes (or assignments load), reset section to a valid auto-pick
+  useEffect(() => {
+    const auto = getAutoSection(formData.className);
+    setSelectedSection((prev) => {
+      // If previous selection is still valid for the new class, keep it
+      const stillValid =
+        prev &&
+        (classes.find((c) => c.name === formData.className)?.sections.some((s) => s.name === prev)) &&
+        isSectionAllowedForTeacher(formData.className, prev);
+      return stillValid ? prev : (auto || "");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.className, classes, teacherAssignments]);
+
   // Auto roll number: count students in that class+section sorted by name, assign next
   const getAutoRollNumber = (className: ClassName, section: string): number => {
     const classStudents = students.filter((s) => s.className === className && s.section === section);
