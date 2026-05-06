@@ -135,13 +135,8 @@ export default function StudentsPage() {
   const [editSubjects, setEditSubjects] = useState<string[]>([]);
   const [selectedSection, setSelectedSection] = useState<string>("");
 
-  // Reset selected subjects & section when class changes
+  // Reset selected subjects when class changes
   useEffect(() => { setFormSubjects([]); }, [formData.className]);
-  useEffect(() => {
-    const auto = getAutoSection(formData.className);
-    setSelectedSection(auto || "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.className, classes, teacherAssignments]);
 
   const updateForm = (field: string, value: any) => setFormData((prev) => ({ ...prev, [field]: value }));
 
