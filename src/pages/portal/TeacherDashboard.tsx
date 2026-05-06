@@ -614,13 +614,17 @@ export default function TeacherDashboard() {
               <CardHeader><CardTitle className="font-display">My Profile</CardTitle></CardHeader>
               <CardContent>
                 <div className="flex items-center gap-4 mb-4">
-                  {teacher.photoFile ? <img src={teacher.photoFile} alt={teacher.name} className="w-16 h-16 rounded-full object-cover" /> : <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary">{teacher.name.charAt(0)}</div>}
-                  <div><h3 className="text-lg font-bold">{teacher.name}</h3><p className="text-sm text-muted-foreground">Teacher • Joined {teacher.joinDate}</p></div>
+                  {teacher.photoFile ? <img src={teacher.photoFile} alt={teacher.name} className="w-20 h-20 rounded-full object-cover ring-2 ring-primary/30" /> : <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">{teacher.name.charAt(0)}</div>}
+                  <div>
+                    <h3 className="text-xl font-bold font-display">{teacher.name}</h3>
+                    <p className="text-sm text-muted-foreground">Teacher • Joined {teacher.joinDate}</p>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                   <div><p className="text-muted-foreground text-xs">Salary</p><p className="font-medium">₹ {teacher.salary.toLocaleString()}</p></div>
                   <div><p className="text-muted-foreground text-xs">Status</p><p className={`font-medium ${teacher.salaryPaid ? "text-emerald-600" : "text-amber-600"}`}>{teacher.salaryPaid ? "Paid" : "Pending"}</p></div>
                 </div>
+                <TeacherGoal teacherId={teacher.id} />
               </CardContent>
             </Card>
             <ChangePassword userId={teacher.id} userType="staff" />
