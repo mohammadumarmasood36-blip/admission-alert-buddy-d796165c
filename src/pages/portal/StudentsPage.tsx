@@ -163,6 +163,21 @@ export default function StudentsPage() {
 
   const allowedClasses = isTeacher ? teacherClasses : (ALL_CLASSES as readonly ClassName[]);
 
+  // Sections allowed for the currently picked class (teachers: only their assigned sections)
+  const allowedSectionNamesForCurrentClass = useMemo(() => {
+    if (!isTeacher) return null; // null = no restriction
+    return new Set(
+      teacherAssignments
+        .filter((a) => a.class_name === formData.className)
+        .map((a) => a.section_name)
+    );
+  }, [isTeacher, teacherAssignments, formData.className]);
+
+  const isClassAllowedForTeacher = (cls: ClassName) =>
+    !isTeacher || teacherAssignments.some((a) => a.class_name === cls);
+  const isSectionAllowedForTeacher = (cls: ClassName, sec: string) =>
+    !isTeacher || teacherAssignments.some((a) => a.class_name === cls && a.section_name === sec);
+
   // Auto-generate admission number (4-digit numeric only)
   const nextAdmissionNumber = useMemo(() => {
     const existingNums = students
