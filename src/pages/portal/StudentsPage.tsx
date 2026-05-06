@@ -579,31 +579,58 @@ export default function StudentsPage() {
                   }}>
                     <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                     <SelectContent className="max-h-60">
-                      {allowedClasses.map((cls) => (
-                        <SelectItem key={cls} value={cls}>Class {cls}</SelectItem>
-                      ))}
+                      {(isTeacher ? (ALL_CLASSES as readonly ClassName[]) : allowedClasses).map((cls) => {
+                        const disabled = !isClassAllowedForTeacher(cls);
+                        return (
+                          <SelectItem key={cls} value={cls} disabled={disabled}>
+                            Class {cls}{disabled ? " (not assigned)" : ""}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              {/* Auto Section Info */}
-              <div className="bg-muted/50 border border-border rounded-lg p-3">
-                <p className="text-xs text-muted-foreground mb-1">Section (Auto-assigned for equal distribution)</p>
-                <div className="flex flex-wrap gap-2">
-                  {currentClassData?.sections.map((s) => {
-                    const count = students.filter((st) => st.className === formData.className && st.section === s.name).length;
-                    const isNext = getAutoSection(formData.className) === s.name;
-                    return (
-                      <Badge key={s.id} variant={isNext ? "default" : "outline"} className="gap-1">
-                        {s.name} ({count} students) {isNext && "← Next"}
-                      </Badge>
-                    );
-                  })}
-                  {(!currentClassData?.sections.length) && (
-                    <p className="text-sm text-destructive">No sections! Add sections to this class first.</p>
-                  )}
-                </div>
+              {/* Section selector — real-time validation */}
+              <div>
+                <Label>Section <span className="text-destructive">*</span></Label>
+                {currentClassData?.sections.length ? (
+                  <>
+                    <Select
+                      value={selectedSection || undefined}
+                      onValueChange={(v) => setSelectedSection(v)}
+                    >
+                      <SelectTrigger className="mt-1.5">
+                        <SelectValue placeholder="Select section" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currentClassData.sections.map((s) => {
+                          const count = students.filter((st) => st.className === formData.className && st.section === s.name).length;
+                          const auto = getAutoSection(formData.className) === s.name;
+                          const allowed = isSectionAllowedForTeacher(formData.className, s.name);
+                          return (
+                            <SelectItem key={s.id} value={s.name} disabled={!allowed}>
+                              Section {s.name} • {count} students{auto ? " — suggested" : ""}{!allowed ? " (not assigned)" : ""}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    {isTeacher && selectedSection && !isSectionAllowedForTeacher(formData.className, selectedSection) && (
+                      <p className="text-xs text-destructive mt-1.5">
+                        You aren't assigned to this section. Pick one of: {Array.from(allowedSectionNamesForCurrentClass || []).join(", ") || "none"}.
+                      </p>
+                    )}
+                    {isTeacher && allowedSectionNamesForCurrentClass && allowedSectionNamesForCurrentClass.size === 0 && (
+                      <p className="text-xs text-destructive mt-1.5">
+                        You have no assigned section in Class {formData.className}.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-destructive mt-1.5">No sections! Add sections to this class first.</p>
+                )}
               </div>
 
               <div>
