@@ -133,6 +133,7 @@ export default function StudentsPage() {
   });
   const [formSubjects, setFormSubjects] = useState<string[]>([]);
   const [editSubjects, setEditSubjects] = useState<string[]>([]);
+  const [selectedSection, setSelectedSection] = useState<string>("");
 
   // Reset selected subjects when class changes
   useEffect(() => { setFormSubjects([]); }, [formData.className]);
