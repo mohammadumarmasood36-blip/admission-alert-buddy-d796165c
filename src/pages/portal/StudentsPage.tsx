@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, GraduationCap, Users, Trash2, Settings, CreditCard, Bus, Upload, Pencil, UserCheck, Copy, Printer, MessageCircle, Loader2, BookOpen, AlertTriangle, CheckSquare } from "lucide-react";
+import { Plus, GraduationCap, Users, Trash2, Settings, CreditCard, Bus, Upload, Pencil, UserCheck, Copy, Printer, MessageCircle, Loader2, BookOpen, AlertTriangle, CheckSquare, CheckCircle2, XCircle, Clock, History } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -42,10 +42,12 @@ export default function StudentsPage() {
   const [editFormData, setEditFormData] = useState<any>({});
   const [classTeachers, setClassTeachers] = useState<any[]>([]);
   const [classFeeDefaults, setClassFeeDefaults] = useState<Record<string, number>>({});
-  const [credentialsDialog, setCredentialsDialog] = useState<{ admissionNumber: string; password: string; studentName: string } | null>(null);
+  const [credentialsDialog, setCredentialsDialog] = useState<{ admissionNumber: string; password: string; studentName: string; studentId?: string } | null>(null);
   const [studentSubjectsMap, setStudentSubjectsMap] = useState<Record<string, string[]>>({});
   const [seniorSubjectsMap, setSeniorSubjectsMap] = useState<Record<string, string[]>>({});
   const [bulkAppend, setBulkAppend] = useState(false);
+  const [deliveryMap, setDeliveryMap] = useState<Record<string, { status: string; method: string; at: string }>>({});
+  const [deliveryHistory, setDeliveryHistory] = useState<any[]>([]);
   const { staff } = useSchool();
 
   useEffect(() => {
@@ -63,6 +65,57 @@ export default function StudentsPage() {
     };
     load();
   }, []);
+
+  // Load latest credential delivery status per student
+  const loadDeliveryMap = async () => {
+    const { data } = await supabase
+      .from("credential_delivery_log" as any)
+      .select("student_id, status, method, created_at")
+      .order("created_at", { ascending: false });
+    if (data) {
+      const map: Record<string, { status: string; method: string; at: string }> = {};
+      for (const r of data as any[]) {
+        if (r.student_id && !map[r.student_id]) {
+          map[r.student_id] = { status: r.status, method: r.method, at: r.created_at };
+        }
+      }
+      setDeliveryMap(map);
+    }
+  };
+  useEffect(() => { loadDeliveryMap(); }, []);
+
+  const logDelivery = async (
+    studentId: string | undefined,
+    admissionNumber: string,
+    method: "whatsapp" | "copy" | "print" | "pending" | "failed",
+    status: "pending" | "sent" | "failed",
+    parentMobile?: string,
+    errorMessage?: string,
+  ) => {
+    try {
+      await supabase.from("credential_delivery_log" as any).insert({
+        student_id: studentId || null,
+        admission_number: admissionNumber,
+        parent_mobile: parentMobile || null,
+        method,
+        status,
+        error_message: errorMessage || null,
+      });
+      loadDeliveryMap();
+    } catch (e) {
+      console.error("Failed to log credential delivery", e);
+    }
+  };
+
+  useEffect(() => {
+    if (!credentialsDialog) { setDeliveryHistory([]); return; }
+    supabase
+      .from("credential_delivery_log" as any)
+      .select("*")
+      .eq("admission_number", credentialsDialog.admissionNumber)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setDeliveryHistory((data as any[]) || []));
+  }, [credentialsDialog]);
 
   // Load subjects for students currently visible (by viewClass)
   useEffect(() => {
@@ -320,14 +373,20 @@ export default function StudentsPage() {
       parentPassword: formData.parentPassword || undefined,
     });
 
-    if (result && formSubjects.length > 0) {
-      // Find the new student id by admission number
+    let newStudentId: string | undefined;
+    if (result) {
       const { data } = await supabase
         .from("students")
         .select("id")
         .eq("admission_number", result.admissionNumber)
         .single();
-      if (data?.id) await saveStudentSubjects(data.id, formSubjects);
+      newStudentId = data?.id;
+      if (newStudentId && formSubjects.length > 0) {
+        await saveStudentSubjects(newStudentId, formSubjects);
+      }
+      // Log a 'pending' delivery row so the student shows up as needing share
+      const parentMobile = formData.fatherMobile || formData.motherMobile || "";
+      await logDelivery(newStudentId, result.admissionNumber, "pending", "pending", parentMobile);
     }
 
     setFormData({
@@ -341,7 +400,7 @@ export default function StudentsPage() {
     setAddOpen(false);
 
     if (result) {
-      setCredentialsDialog(result);
+      setCredentialsDialog({ ...result, studentId: newStudentId });
     }
   };
 
@@ -880,13 +939,14 @@ export default function StudentsPage() {
                       <th className="text-left px-4 py-3">Subjects</th>
                       <th className="text-left px-4 py-3">Transport</th>
                       <th className="text-left px-4 py-3">ID Card</th>
+                      <th className="text-left px-4 py-3">Credentials Sent</th>
                   {!isViewOnly && <th className="text-left px-4 py-3">Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {getSortedStudents(viewClass).length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="text-center py-10 text-muted-foreground">
+                    <td colSpan={12} className="text-center py-10 text-muted-foreground">
                       <GraduationCap className="w-8 h-8 mb-2 opacity-40 mx-auto" />
                       <p className="text-sm">{missingSubjectsOnly ? "No students missing subjects in this class 🎉" : "No students in this class"}</p>
                     </td>
@@ -944,6 +1004,43 @@ export default function StudentsPage() {
                         <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => setIdCardStudent(student)}>
                           <CreditCard className="w-3.5 h-3.5" /> Print
                         </Button>
+                      </td>
+                      <td className="px-4 py-3">
+                        {(() => {
+                          const d = deliveryMap[student.id];
+                          if (!d || d.status === "pending") {
+                            return (
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 text-xs text-amber-700 hover:underline"
+                                onClick={() => setCredentialsDialog({
+                                  admissionNumber: student.admissionNumber,
+                                  password: (student as any).parentPassword || "",
+                                  studentName: student.name,
+                                  studentId: student.id,
+                                })}
+                                title="Click to share credentials"
+                              >
+                                <Clock className="w-3.5 h-3.5" />
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-400 text-amber-700">Pending</Badge>
+                              </button>
+                            );
+                          }
+                          if (d.status === "sent") {
+                            return (
+                              <span className="inline-flex items-center gap-1 text-xs text-green-700" title={`via ${d.method} on ${new Date(d.at).toLocaleString("en-IN")}`}>
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <Badge variant="default" className="text-[10px] px-1.5 py-0 capitalize">Sent · {d.method}</Badge>
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="inline-flex items-center gap-1 text-xs text-destructive" title={`Failed via ${d.method} on ${new Date(d.at).toLocaleString("en-IN")}`}>
+                              <XCircle className="w-3.5 h-3.5" />
+                              <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Failed</Badge>
+                            </span>
+                          );
+                        })()}
                       </td>
                       {!isViewOnly && <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
@@ -1164,15 +1261,58 @@ export default function StudentsPage() {
                   </Button>
                 </div>
               </div>
+              {/* Delivery History */}
+              <div className="rounded-lg border bg-card p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <History className="w-3.5 h-3.5 text-muted-foreground" />
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Delivery Log</p>
+                </div>
+                {deliveryHistory.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No delivery attempts yet — share via WhatsApp, copy or print to log one.</p>
+                ) : (
+                  <ul className="space-y-1.5 max-h-32 overflow-y-auto">
+                    {deliveryHistory.map((d) => (
+                      <li key={d.id} className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-1.5">
+                          {d.status === "sent" ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                          ) : d.status === "failed" ? (
+                            <XCircle className="w-3.5 h-3.5 text-destructive" />
+                          ) : (
+                            <Clock className="w-3.5 h-3.5 text-amber-500" />
+                          )}
+                          <span className="capitalize">{d.method}</span>
+                          <Badge variant={d.status === "sent" ? "default" : d.status === "failed" ? "destructive" : "outline"} className="text-[10px] px-1.5 py-0 capitalize">
+                            {d.status}
+                          </Badge>
+                        </span>
+                        <span className="text-muted-foreground">{new Date(d.created_at).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" })}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
               <DialogFooter className="flex-col sm:flex-row gap-2">
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => {
-                    navigator.clipboard.writeText(
-                      `Student: ${credentialsDialog.studentName}\nAdmission No: ${credentialsDialog.admissionNumber}\nPassword: ${credentialsDialog.password}`
-                    );
-                    toast.success("All credentials copied to clipboard");
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(
+                        `Student: ${credentialsDialog.studentName}\nAdmission No: ${credentialsDialog.admissionNumber}\nPassword: ${credentialsDialog.password}`
+                      );
+                      toast.success("All credentials copied to clipboard");
+                      await logDelivery(credentialsDialog.studentId, credentialsDialog.admissionNumber, "copy", "sent");
+                    } catch (err: any) {
+                      toast.error("Failed to copy");
+                      await logDelivery(credentialsDialog.studentId, credentialsDialog.admissionNumber, "copy", "failed", undefined, err?.message);
+                    }
+                    setDeliveryHistory((h) => h); // refresh
+                    if (credentialsDialog) {
+                      const { data } = await supabase.from("credential_delivery_log" as any).select("*").eq("admission_number", credentialsDialog.admissionNumber).order("created_at", { ascending: false });
+                      setDeliveryHistory((data as any[]) || []);
+                    }
                   }}
                 >
                   <Copy className="h-4 w-4 mr-2" /> Copy All
@@ -1180,11 +1320,14 @@ export default function StudentsPage() {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => {
+                  onClick={async () => {
                     const student = students.find(s => s.admissionNumber === credentialsDialog.admissionNumber);
                     const phone = student?.fatherMobile || student?.motherMobile || "";
                     if (!phone) {
                       toast.error("No parent mobile number found for this student");
+                      await logDelivery(credentialsDialog.studentId, credentialsDialog.admissionNumber, "whatsapp", "failed", undefined, "No parent mobile on file");
+                      const { data } = await supabase.from("credential_delivery_log" as any).select("*").eq("admission_number", credentialsDialog.admissionNumber).order("created_at", { ascending: false });
+                      setDeliveryHistory((data as any[]) || []);
                       return;
                     }
                     const message = encodeURIComponent(
@@ -1194,15 +1337,23 @@ export default function StudentsPage() {
                     if (!formattedPhone.startsWith("+")) {
                       formattedPhone = "+91" + formattedPhone;
                     }
-                    window.open(`https://wa.me/${formattedPhone.replace("+", "")}?text=${message}`, "_blank");
-                    toast.success("Opening WhatsApp...");
+                    const opened = window.open(`https://wa.me/${formattedPhone.replace("+", "")}?text=${message}`, "_blank");
+                    if (opened) {
+                      toast.success("Opening WhatsApp...");
+                      await logDelivery(credentialsDialog.studentId, credentialsDialog.admissionNumber, "whatsapp", "sent", formattedPhone);
+                    } else {
+                      toast.error("Pop-up blocked — could not open WhatsApp");
+                      await logDelivery(credentialsDialog.studentId, credentialsDialog.admissionNumber, "whatsapp", "failed", formattedPhone, "Pop-up blocked");
+                    }
+                    const { data } = await supabase.from("credential_delivery_log" as any).select("*").eq("admission_number", credentialsDialog.admissionNumber).order("created_at", { ascending: false });
+                    setDeliveryHistory((data as any[]) || []);
                   }}
                 >
                   <MessageCircle className="h-4 w-4 mr-2" /> WhatsApp
                 </Button>
                 <Button
                   className="flex-1"
-                  onClick={() => {
+                  onClick={async () => {
                     const printWindow = window.open("", "_blank");
                     if (printWindow) {
                       printWindow.document.write(`
@@ -1219,7 +1370,13 @@ export default function StudentsPage() {
                         </body></html>`);
                       printWindow.document.close();
                       printWindow.print();
+                      await logDelivery(credentialsDialog.studentId, credentialsDialog.admissionNumber, "print", "sent");
+                    } else {
+                      toast.error("Pop-up blocked — could not open print window");
+                      await logDelivery(credentialsDialog.studentId, credentialsDialog.admissionNumber, "print", "failed", undefined, "Pop-up blocked");
                     }
+                    const { data } = await supabase.from("credential_delivery_log" as any).select("*").eq("admission_number", credentialsDialog.admissionNumber).order("created_at", { ascending: false });
+                    setDeliveryHistory((data as any[]) || []);
                   }}
                 >
                   <Printer className="h-4 w-4 mr-2" /> Print
