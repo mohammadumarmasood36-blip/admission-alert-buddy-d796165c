@@ -5,8 +5,8 @@ import { Link } from "react-router-dom";
 import TopBar from "@/components/TopBar";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import schoolLogo from "@/assets/school-logo.png";
 import { supabase } from "@/integrations/supabase/client";
+import { filterTeachers } from "@/lib/roles";
 
 interface Teacher {
   id: string;
@@ -14,6 +14,29 @@ interface Teacher {
   photo: string | null;
   joinDate: string | null;
   teachingClasses: string[] | null;
+  goal: string | null;
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("") || "T";
+}
+
+const AVATAR_GRADIENTS = [
+  "from-primary/30 to-secondary/30",
+  "from-secondary/30 to-primary/40",
+  "from-amber-300/40 to-orange-400/40",
+  "from-emerald-300/40 to-teal-400/40",
+  "from-purple-300/40 to-pink-400/40",
+  "from-sky-300/40 to-indigo-400/40",
+];
+function gradientFor(name: string) {
+  const i = name.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_GRADIENTS.length;
+  return AVATAR_GRADIENTS[i];
 }
 
 const teacherAims: Record<string, string> = {};
