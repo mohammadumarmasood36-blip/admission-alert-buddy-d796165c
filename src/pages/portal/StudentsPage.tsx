@@ -939,6 +939,7 @@ export default function StudentsPage() {
                       <th className="text-left px-4 py-3">Subjects</th>
                       <th className="text-left px-4 py-3">Transport</th>
                       <th className="text-left px-4 py-3">ID Card</th>
+                      <th className="text-left px-4 py-3">Credentials Sent</th>
                   {!isViewOnly && <th className="text-left px-4 py-3">Actions</th>}
                 </tr>
               </thead>
@@ -1003,6 +1004,43 @@ export default function StudentsPage() {
                         <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => setIdCardStudent(student)}>
                           <CreditCard className="w-3.5 h-3.5" /> Print
                         </Button>
+                      </td>
+                      <td className="px-4 py-3">
+                        {(() => {
+                          const d = deliveryMap[student.id];
+                          if (!d || d.status === "pending") {
+                            return (
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 text-xs text-amber-700 hover:underline"
+                                onClick={() => setCredentialsDialog({
+                                  admissionNumber: student.admissionNumber,
+                                  password: (student as any).parentPassword || "",
+                                  studentName: student.name,
+                                  studentId: student.id,
+                                })}
+                                title="Click to share credentials"
+                              >
+                                <Clock className="w-3.5 h-3.5" />
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-400 text-amber-700">Pending</Badge>
+                              </button>
+                            );
+                          }
+                          if (d.status === "sent") {
+                            return (
+                              <span className="inline-flex items-center gap-1 text-xs text-green-700" title={`via ${d.method} on ${new Date(d.at).toLocaleString("en-IN")}`}>
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <Badge variant="default" className="text-[10px] px-1.5 py-0 capitalize">Sent · {d.method}</Badge>
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="inline-flex items-center gap-1 text-xs text-destructive" title={`Failed via ${d.method} on ${new Date(d.at).toLocaleString("en-IN")}`}>
+                              <XCircle className="w-3.5 h-3.5" />
+                              <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Failed</Badge>
+                            </span>
+                          );
+                        })()}
                       </td>
                       {!isViewOnly && <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
