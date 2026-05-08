@@ -5,8 +5,8 @@ import { Link } from "react-router-dom";
 import TopBar from "@/components/TopBar";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import schoolLogo from "@/assets/school-logo.png";
 import { supabase } from "@/integrations/supabase/client";
+import { filterTeachers } from "@/lib/roles";
 
 interface Teacher {
   id: string;
@@ -14,6 +14,29 @@ interface Teacher {
   photo: string | null;
   joinDate: string | null;
   teachingClasses: string[] | null;
+  goal: string | null;
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("") || "T";
+}
+
+const AVATAR_GRADIENTS = [
+  "from-primary/30 to-secondary/30",
+  "from-secondary/30 to-primary/40",
+  "from-amber-300/40 to-orange-400/40",
+  "from-emerald-300/40 to-teal-400/40",
+  "from-purple-300/40 to-pink-400/40",
+  "from-sky-300/40 to-indigo-400/40",
+];
+function gradientFor(name: string) {
+  const i = name.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_GRADIENTS.length;
+  return AVATAR_GRADIENTS[i];
 }
 
 const teacherAims: Record<string, string> = {};
@@ -51,17 +74,33 @@ const OurTeam = () => {
     const fetchTeachers = async () => {
       const { data, error } = await supabase
         .from("staff")
-        .select('id, "Full Name", Photo, join_date, teaching_classes')
+        .select('id, "Full Name", Photo, Role, join_date, teaching_classes')
         .ilike("Role", "teacher");
 
       if (!error && data) {
+        const teacherRows = filterTeachers(data);
+        const ids = teacherRows.map((s) => s.id);
+        const goalKeys = ids.map((id) => `teacher_goal_${id}`);
+        let goalMap: Record<string, string> = {};
+        if (goalKeys.length) {
+          const { data: goalsData } = await supabase
+            .from("app_settings")
+            .select("key, value")
+            .in("key", goalKeys);
+          if (goalsData) {
+            for (const g of goalsData) {
+              goalMap[(g as any).key] = (g as any).value;
+            }
+          }
+        }
         setTeachers(
-          data.map((s) => ({
+          teacherRows.map((s: any) => ({
             id: s.id,
             name: s["Full Name"],
             photo: s.Photo,
             joinDate: s.join_date,
             teachingClasses: (s.teaching_classes as string[]) || [],
+            goal: goalMap[`teacher_goal_${s.id}`] || null,
           }))
         );
       }
@@ -115,13 +154,13 @@ const OurTeam = () => {
                   whileHover={{ y: -8, boxShadow: "0 20px 40px -12px hsla(var(--primary) / 0.15)" }}
                   className="bg-card border border-border rounded-2xl overflow-hidden group transition-all duration-300"
                 >
-                  <div className="h-48 bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center relative overflow-hidden">
+                  <div className={`h-48 bg-gradient-to-br ${gradientFor(teacher.name)} flex items-center justify-center relative overflow-hidden`}>
                     <motion.div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     {teacher.photo ? (
                       <img src={teacher.photo} alt={teacher.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-24 h-24 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center">
-                        <img src={schoolLogo} alt="UPS" className="w-16 h-16 object-contain opacity-60" />
+                      <div className="w-24 h-24 rounded-full bg-card/80 backdrop-blur border-2 border-primary/30 flex items-center justify-center shadow-md">
+                        <span className="text-3xl font-bold text-primary">{getInitials(teacher.name)}</span>
                       </div>
                     )}
                   </div>
@@ -146,9 +185,11 @@ const OurTeam = () => {
                       <div className="flex items-start gap-2">
                         <Target className="w-4 h-4 text-primary/60 shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-xs font-semibold text-primary/80 mb-1">My Aim</p>
+                          <p className="text-xs font-semibold text-primary/80 mb-1">
+                            {teacher.goal ? "My Goal" : "My Aim"}
+                          </p>
                           <p className="text-xs text-muted-foreground italic leading-relaxed line-clamp-3">
-                            "{getAimForTeacher(teacher.name, teacher.teachingClasses)}"
+                            "{teacher.goal || getAimForTeacher(teacher.name, teacher.teachingClasses)}"
                           </p>
                         </div>
                       </div>
