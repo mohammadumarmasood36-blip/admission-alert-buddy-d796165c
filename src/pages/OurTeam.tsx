@@ -195,7 +195,6 @@ const OurTeam = () => {
                       </div>
                     </div>
                   </div>
-                  </div>
                 </motion.div>
               ))}
             </div>
