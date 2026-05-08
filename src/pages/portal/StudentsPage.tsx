@@ -373,14 +373,20 @@ export default function StudentsPage() {
       parentPassword: formData.parentPassword || undefined,
     });
 
-    if (result && formSubjects.length > 0) {
-      // Find the new student id by admission number
+    let newStudentId: string | undefined;
+    if (result) {
       const { data } = await supabase
         .from("students")
         .select("id")
         .eq("admission_number", result.admissionNumber)
         .single();
-      if (data?.id) await saveStudentSubjects(data.id, formSubjects);
+      newStudentId = data?.id;
+      if (newStudentId && formSubjects.length > 0) {
+        await saveStudentSubjects(newStudentId, formSubjects);
+      }
+      // Log a 'pending' delivery row so the student shows up as needing share
+      const parentMobile = formData.fatherMobile || formData.motherMobile || "";
+      await logDelivery(newStudentId, result.admissionNumber, "pending", "pending", parentMobile);
     }
 
     setFormData({
@@ -394,7 +400,7 @@ export default function StudentsPage() {
     setAddOpen(false);
 
     if (result) {
-      setCredentialsDialog(result);
+      setCredentialsDialog({ ...result, studentId: newStudentId });
     }
   };
 
