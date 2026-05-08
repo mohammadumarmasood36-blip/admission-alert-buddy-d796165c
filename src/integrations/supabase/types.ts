@@ -153,6 +153,42 @@ export type Database = {
           },
         ]
       }
+      credential_delivery_log: {
+        Row: {
+          admission_number: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          method: string
+          parent_mobile: string | null
+          sent_by: string | null
+          status: string
+          student_id: string | null
+        }
+        Insert: {
+          admission_number?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          method?: string
+          parent_mobile?: string | null
+          sent_by?: string | null
+          status?: string
+          student_id?: string | null
+        }
+        Update: {
+          admission_number?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          method?: string
+          parent_mobile?: string | null
+          sent_by?: string | null
+          status?: string
+          student_id?: string | null
+        }
+        Relationships: []
+      }
       exam_results: {
         Row: {
           admission_no: string | null
