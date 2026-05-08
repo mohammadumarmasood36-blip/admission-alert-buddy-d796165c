@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, GraduationCap, Users, Trash2, Settings, CreditCard, Bus, Upload, Pencil, UserCheck, Copy, Printer, MessageCircle, Loader2, BookOpen, AlertTriangle, CheckSquare } from "lucide-react";
+import { Plus, GraduationCap, Users, Trash2, Settings, CreditCard, Bus, Upload, Pencil, UserCheck, Copy, Printer, MessageCircle, Loader2, BookOpen, AlertTriangle, CheckSquare, CheckCircle2, XCircle, Clock, History } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -42,10 +42,12 @@ export default function StudentsPage() {
   const [editFormData, setEditFormData] = useState<any>({});
   const [classTeachers, setClassTeachers] = useState<any[]>([]);
   const [classFeeDefaults, setClassFeeDefaults] = useState<Record<string, number>>({});
-  const [credentialsDialog, setCredentialsDialog] = useState<{ admissionNumber: string; password: string; studentName: string } | null>(null);
+  const [credentialsDialog, setCredentialsDialog] = useState<{ admissionNumber: string; password: string; studentName: string; studentId?: string } | null>(null);
   const [studentSubjectsMap, setStudentSubjectsMap] = useState<Record<string, string[]>>({});
   const [seniorSubjectsMap, setSeniorSubjectsMap] = useState<Record<string, string[]>>({});
   const [bulkAppend, setBulkAppend] = useState(false);
+  const [deliveryMap, setDeliveryMap] = useState<Record<string, { status: string; method: string; at: string }>>({});
+  const [deliveryHistory, setDeliveryHistory] = useState<any[]>([]);
   const { staff } = useSchool();
 
   useEffect(() => {
