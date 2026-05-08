@@ -66,6 +66,57 @@ export default function StudentsPage() {
     load();
   }, []);
 
+  // Load latest credential delivery status per student
+  const loadDeliveryMap = async () => {
+    const { data } = await supabase
+      .from("credential_delivery_log" as any)
+      .select("student_id, status, method, created_at")
+      .order("created_at", { ascending: false });
+    if (data) {
+      const map: Record<string, { status: string; method: string; at: string }> = {};
+      for (const r of data as any[]) {
+        if (r.student_id && !map[r.student_id]) {
+          map[r.student_id] = { status: r.status, method: r.method, at: r.created_at };
+        }
+      }
+      setDeliveryMap(map);
+    }
+  };
+  useEffect(() => { loadDeliveryMap(); }, []);
+
+  const logDelivery = async (
+    studentId: string | undefined,
+    admissionNumber: string,
+    method: "whatsapp" | "copy" | "print" | "pending" | "failed",
+    status: "pending" | "sent" | "failed",
+    parentMobile?: string,
+    errorMessage?: string,
+  ) => {
+    try {
+      await supabase.from("credential_delivery_log" as any).insert({
+        student_id: studentId || null,
+        admission_number: admissionNumber,
+        parent_mobile: parentMobile || null,
+        method,
+        status,
+        error_message: errorMessage || null,
+      });
+      loadDeliveryMap();
+    } catch (e) {
+      console.error("Failed to log credential delivery", e);
+    }
+  };
+
+  useEffect(() => {
+    if (!credentialsDialog) { setDeliveryHistory([]); return; }
+    supabase
+      .from("credential_delivery_log" as any)
+      .select("*")
+      .eq("admission_number", credentialsDialog.admissionNumber)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setDeliveryHistory((data as any[]) || []));
+  }, [credentialsDialog]);
+
   // Load subjects for students currently visible (by viewClass)
   useEffect(() => {
     if (!viewClass) return;
