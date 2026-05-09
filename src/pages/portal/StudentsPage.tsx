@@ -588,7 +588,13 @@ export default function StudentsPage() {
         </div>
         {!isViewOnly && <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 w-full sm:w-auto"><Plus className="w-4 h-4" /> Add Student</Button>
+            <Button
+              className="gap-2 w-full sm:w-auto"
+              disabled={isTeacher && teacherAssignments.length === 0}
+              title={isTeacher && teacherAssignments.length === 0 ? "Ask an admin to assign you as class teacher first" : undefined}
+            >
+              <Plus className="w-4 h-4" /> Add Student
+            </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
