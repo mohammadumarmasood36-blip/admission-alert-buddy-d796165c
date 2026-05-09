@@ -808,6 +808,20 @@ export default function StudentsPage() {
         </Dialog>}
       </div>
 
+      {isTeacher && teacherAssignments.length === 0 && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-amber-800 dark:text-amber-300">You can't enroll students yet</p>
+            <p className="text-amber-700 dark:text-amber-200/90 mt-1">
+              You aren't assigned as a class teacher to any class & section. Ask the principal or manager to assign you on the
+              <span className="font-medium"> Class Teachers </span>
+              page. Once assigned, you'll be able to add students to your class and section only.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Class Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
         {classes.map((cls, index) => {
