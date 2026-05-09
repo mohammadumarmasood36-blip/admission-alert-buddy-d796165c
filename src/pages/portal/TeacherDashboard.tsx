@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, GraduationCap, BookOpen, Users, CheckCircle, XCircle, BarChart3, Eye, Star, ClipboardList, Save, Loader2, Bell, School, Megaphone, PenLine, Trash2, Pencil } from "lucide-react";
+import { LogOut, GraduationCap, BookOpen, Users, CheckCircle, XCircle, BarChart3, Eye, Star, ClipboardList, Save, Loader2, Bell, School, Megaphone, PenLine, Trash2, Pencil, UserPlus } from "lucide-react";
 import ChangePassword from "@/components/portal/ChangePassword";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -300,9 +300,18 @@ export default function TeacherDashboard() {
             <p className="text-xs text-white/70">Welcome, {teacher.name}</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 border-white/30 text-white hover:bg-white/10 bg-transparent">
-          <LogOut className="w-4 h-4" /> Logout
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => navigate("/portal/students")}
+            className="gap-2 bg-white text-blue-700 hover:bg-white/90"
+          >
+            <UserPlus className="w-4 h-4" /> Add Student
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 border-white/30 text-white hover:bg-white/10 bg-transparent">
+            <LogOut className="w-4 h-4" /> Logout
+          </Button>
+        </div>
       </header>
 
       <main className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
