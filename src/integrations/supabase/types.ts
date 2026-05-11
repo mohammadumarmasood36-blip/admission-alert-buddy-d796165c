@@ -536,6 +536,63 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_intents: {
+        Row: {
+          cashier_id: string | null
+          cashier_name: string | null
+          class_name: string
+          created_at: string
+          expected_amount: number
+          id: string
+          quarters: Json
+          receipt_number: string | null
+          section: string | null
+          session: string | null
+          status: string
+          student_id: string
+          student_name: string
+          tr: string
+          transaction_id: string | null
+          used_at: string | null
+        }
+        Insert: {
+          cashier_id?: string | null
+          cashier_name?: string | null
+          class_name: string
+          created_at?: string
+          expected_amount: number
+          id?: string
+          quarters?: Json
+          receipt_number?: string | null
+          section?: string | null
+          session?: string | null
+          status?: string
+          student_id: string
+          student_name: string
+          tr: string
+          transaction_id?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          cashier_id?: string | null
+          cashier_name?: string | null
+          class_name?: string
+          created_at?: string
+          expected_amount?: number
+          id?: string
+          quarters?: Json
+          receipt_number?: string | null
+          section?: string | null
+          session?: string | null
+          status?: string
+          student_id?: string
+          student_name?: string
+          tr?: string
+          transaction_id?: string | null
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
