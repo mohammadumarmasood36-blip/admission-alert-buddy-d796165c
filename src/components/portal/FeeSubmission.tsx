@@ -499,62 +499,96 @@ function PaymentModeDialog({
           </div>
         ) : mode === "online" ? (
           <div className="space-y-4 mt-4 text-center">
-            <div className="bg-white rounded-xl p-4 inline-block mx-auto">
-              {upiId ? (() => {
-                const fixedAmount = Number(totalAmount).toFixed(2);
-                const txnRef = `FEE${student.admissionNumber}${Date.now().toString().slice(-6)}`;
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+              🔒 Amount is fixed at ₹{totalAmount.toLocaleString("en-IN")} and cannot be changed by the cashier or payer. Any short payment will be rejected by the server.
+            </div>
+            <div className="bg-white rounded-xl p-4 inline-flex items-center justify-center mx-auto" style={{ minWidth: 232, minHeight: 232 }}>
+              {!upiId ? (
+                <div className="w-[200px] h-[200px] flex items-center justify-center text-sm text-muted-foreground">
+                  UPI ID not configured.<br />Ask director to add it in settings.
+                </div>
+              ) : intentLoading || !intent ? (
+                <div className="w-[200px] h-[200px] flex flex-col items-center justify-center text-sm text-muted-foreground gap-2">
+                  {intentError ? (
+                    <span className="text-destructive text-center px-2">{intentError}</span>
+                  ) : (
+                    <><Loader2 className="w-6 h-6 animate-spin" /> Generating secure QR…</>
+                  )}
+                </div>
+              ) : (() => {
+                const fixedAmount = Number(intent.expectedAmount).toFixed(2);
                 const note = `Fee ${student.admissionNumber} ${selectedQuarters.join("-")}`;
-                // Build a fully-formed UPI deep link, then URL-encode the whole thing
-                // so qrserver receives it as a single `data` param. The `am` field then
-                // arrives intact and UPI apps lock the amount (non-editable in GPay /
-                // PhonePe / Paytm / BHIM when `am` + `cu` + `tn` are present).
                 const upiUri =
                   `upi://pay?pa=${encodeURIComponent(upiId)}` +
                   `&pn=${encodeURIComponent("Universal Public School")}` +
                   `&am=${fixedAmount}` +
                   `&cu=INR` +
                   `&tn=${encodeURIComponent(note)}` +
-                  `&tr=${encodeURIComponent(txnRef)}`;
+                  `&tr=${encodeURIComponent(intent.tr)}`;
                 const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&qzone=2&data=${encodeURIComponent(upiUri)}`;
-                return (
-                  <img
-                    src={qrUrl}
-                    alt="UPI QR Code"
-                    className="w-[200px] h-[200px]"
-                  />
-                );
-              })() : (
-                <div className="w-[200px] h-[200px] flex items-center justify-center text-sm text-muted-foreground">
-                  UPI ID not configured.<br />Ask director to add it in settings.
-                </div>
-              )}
+                return <img src={qrUrl} alt="UPI QR Code" className="w-[200px] h-[200px]" />;
+              })()}
             </div>
             {upiId && <p className="text-sm text-muted-foreground">UPI: {upiId}</p>}
-            <p className="text-lg font-bold">₹ {totalAmount.toLocaleString("en-IN")}</p>
-            <p className="text-xs text-muted-foreground">
-              Scan with any UPI app — amount is locked at ₹{totalAmount.toLocaleString("en-IN")} and cannot be changed by the payer.
-            </p>
+            <div className="space-y-1">
+              <p className="text-lg font-bold">₹ {totalAmount.toLocaleString("en-IN")}</p>
+              {intent && (
+                <p className="text-[11px] text-muted-foreground font-mono">Ref: {intent.tr}</p>
+              )}
+            </div>
             <div className="text-left max-w-xs mx-auto">
-              <Label className="text-sm">Transaction ID *</Label>
+              <Label className="text-sm">UPI Transaction ID *</Label>
               <Input
                 placeholder="Enter UPI transaction ID"
                 value={transactionId}
                 onChange={(e) => setTransactionId(e.target.value)}
                 className="mt-1"
+                disabled={!intent}
               />
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setMode("select")} className="flex-1">Back</Button>
               <Button
-                onClick={() => {
+                onClick={async () => {
+                  if (!intent) { toast.error("Payment reference not ready yet"); return; }
                   if (!transactionId.trim()) { toast.error("Please enter the transaction ID"); return; }
-                  recordPayment("online", undefined, transactionId.trim());
+                  setProcessing(true);
+                  const { data, error } = await supabase.functions.invoke("verify-payment", {
+                    body: {
+                      tr: intent.tr,
+                      claimedAmount: totalAmount,
+                      transactionId: transactionId.trim(),
+                      studentId: student.id,
+                    },
+                  });
+                  setProcessing(false);
+                  if (error || !data?.success) {
+                    toast.error(data?.error || error?.message || "Payment verification failed");
+                    return;
+                  }
+                  const receipt = {
+                    receiptNumber: data.receiptNumber,
+                    studentName: student.name,
+                    admissionNumber: student.admissionNumber,
+                    className: student.className,
+                    section: student.section,
+                    quarters: selectedQuarters,
+                    totalAmount,
+                    paymentMode: "online",
+                    cashierName,
+                    date: new Date().toLocaleDateString("en-IN"),
+                    session,
+                    transactionId: transactionId.trim(),
+                  };
+                  setReceiptData(receipt);
+                  toast.success("Payment verified and recorded!");
+                  setTimeout(() => printReceipt(receipt), 500);
                 }}
-                disabled={processing}
+                disabled={processing || !intent}
                 className="flex-1 gap-2"
               >
                 {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Payment Received
+                Verify & Record
               </Button>
             </div>
           </div>
