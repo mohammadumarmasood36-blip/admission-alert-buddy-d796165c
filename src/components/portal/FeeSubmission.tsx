@@ -469,13 +469,30 @@ function PaymentModeDialog({
         ) : mode === "online" ? (
           <div className="space-y-4 mt-4 text-center">
             <div className="bg-white rounded-xl p-4 inline-block mx-auto">
-              {upiId ? (
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${encodeURIComponent(upiId)}&pn=Universal%20Public%20School&am=${totalAmount}&cu=INR`}
-                  alt="UPI QR Code"
-                  className="w-[200px] h-[200px]"
-                />
-              ) : (
+              {upiId ? (() => {
+                const fixedAmount = Number(totalAmount).toFixed(2);
+                const txnRef = `FEE${student.admissionNumber}${Date.now().toString().slice(-6)}`;
+                const note = `Fee ${student.admissionNumber} ${selectedQuarters.join("-")}`;
+                // Build a fully-formed UPI deep link, then URL-encode the whole thing
+                // so qrserver receives it as a single `data` param. The `am` field then
+                // arrives intact and UPI apps lock the amount (non-editable in GPay /
+                // PhonePe / Paytm / BHIM when `am` + `cu` + `tn` are present).
+                const upiUri =
+                  `upi://pay?pa=${encodeURIComponent(upiId)}` +
+                  `&pn=${encodeURIComponent("Universal Public School")}` +
+                  `&am=${fixedAmount}` +
+                  `&cu=INR` +
+                  `&tn=${encodeURIComponent(note)}` +
+                  `&tr=${encodeURIComponent(txnRef)}`;
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&qzone=2&data=${encodeURIComponent(upiUri)}`;
+                return (
+                  <img
+                    src={qrUrl}
+                    alt="UPI QR Code"
+                    className="w-[200px] h-[200px]"
+                  />
+                );
+              })() : (
                 <div className="w-[200px] h-[200px] flex items-center justify-center text-sm text-muted-foreground">
                   UPI ID not configured.<br />Ask director to add it in settings.
                 </div>
@@ -483,7 +500,9 @@ function PaymentModeDialog({
             </div>
             {upiId && <p className="text-sm text-muted-foreground">UPI: {upiId}</p>}
             <p className="text-lg font-bold">₹ {totalAmount.toLocaleString("en-IN")}</p>
-            <p className="text-xs text-muted-foreground">Scan QR code to pay via any UPI app</p>
+            <p className="text-xs text-muted-foreground">
+              Scan with any UPI app — amount is locked at ₹{totalAmount.toLocaleString("en-IN")} and cannot be changed by the payer.
+            </p>
             <div className="text-left max-w-xs mx-auto">
               <Label className="text-sm">Transaction ID *</Label>
               <Input
