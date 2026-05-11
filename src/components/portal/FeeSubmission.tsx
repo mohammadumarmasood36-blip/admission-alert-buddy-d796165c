@@ -256,10 +256,13 @@ function PaymentModeDialog({
     ifscCode: "",
   });
   const [receiptData, setReceiptData] = useState<any>(null);
+  const [intent, setIntent] = useState<{ tr: string; expectedAmount: number } | null>(null);
+  const [intentLoading, setIntentLoading] = useState(false);
+  const [intentError, setIntentError] = useState<string | null>(null);
 
+  // Load UPI id when dialog opens
   useEffect(() => {
     if (open && mode === "select") {
-      // Load UPI
       supabase.from("app_settings").select("value").eq("key", "director_upi").maybeSingle()
         .then(({ data }) => {
           if (data?.value) {
@@ -268,6 +271,34 @@ function PaymentModeDialog({
         });
     }
   }, [open, mode]);
+
+  // Server-issued payment intent: regenerates whenever student / quarters / amount change
+  // while the online tab is active. Guarantees the QR's `tr` always matches the
+  // backend-locked expected amount.
+  useEffect(() => {
+    if (!open || mode !== "online") return;
+    let cancelled = false;
+    setIntent(null);
+    setIntentError(null);
+    setIntentLoading(true);
+    supabase.functions.invoke("create-payment-intent", {
+      body: {
+        studentId: student.id,
+        session,
+        quarters: selectedQuarters,
+        cashierName,
+      },
+    }).then(({ data, error }) => {
+      if (cancelled) return;
+      if (error || !data?.tr) {
+        setIntentError(data?.error || error?.message || "Failed to create payment reference");
+      } else {
+        setIntent({ tr: data.tr, expectedAmount: Number(data.expectedAmount) });
+      }
+      setIntentLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [open, mode, student.id, JSON.stringify(selectedQuarters), totalAmount, session, cashierName]);
 
   const recordPayment = async (paymentMode: string, chequeInfo?: any, txnId?: string) => {
     setProcessing(true);
