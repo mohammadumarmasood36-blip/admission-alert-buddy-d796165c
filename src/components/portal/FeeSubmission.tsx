@@ -784,6 +784,18 @@ export default function FeeSubmission() {
               </div>
             </div>
           )}
+
+          {foundStudents.length === 0 && (
+            <div className="bg-card border border-dashed border-border rounded-xl p-10 text-center">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                <User className="w-6 h-6 text-primary" />
+              </div>
+              <p className="font-medium text-sm text-foreground">No student selected</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                Search by admission number or parent mobile to load fee details. The payment form will appear after you pick a student.
+              </p>
+            </div>
+          )}
         </>
       )}
 
