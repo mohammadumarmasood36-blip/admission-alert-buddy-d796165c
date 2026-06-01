@@ -813,20 +813,21 @@ export default function FeeSubmission() {
         />
       )}
 
-      <PaymentModeDialog
-        open={paymentDialogOpen}
-        onClose={() => setPaymentDialogOpen(false)}
-        student={selectedStudent!}
-        selectedQuarters={payQuarters}
-        totalAmount={payAmount}
-        session={session}
-        cashierName={user?.name || "Cashier"}
-        onPaymentComplete={() => {
-          // Refresh the student data
-          if (selectedStudent) selectStudent(selectedStudent);
-          setStep("details");
-        }}
-      />
+      {selectedStudent && (
+        <PaymentModeDialog
+          open={paymentDialogOpen}
+          onClose={() => setPaymentDialogOpen(false)}
+          student={selectedStudent}
+          selectedQuarters={payQuarters}
+          totalAmount={payAmount}
+          session={session}
+          cashierName={user?.name || "Cashier"}
+          onPaymentComplete={() => {
+            if (selectedStudent) selectStudent(selectedStudent);
+            setStep("details");
+          }}
+        />
+      )}
     </div>
   );
 }
