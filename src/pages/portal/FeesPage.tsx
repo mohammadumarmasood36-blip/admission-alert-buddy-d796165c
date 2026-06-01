@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import FeeSubmission from "@/components/portal/FeeSubmission";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function FeesPage() {
   const { students, classes } = useSchool();
@@ -149,7 +150,9 @@ export default function FeesPage() {
 
         {canSubmit && (
         <TabsContent value="submit" className="mt-0">
-          <FeeSubmission />
+          <ErrorBoundary fallbackTitle="Fee submission unavailable">
+            <FeeSubmission />
+          </ErrorBoundary>
         </TabsContent>
         )}
 
