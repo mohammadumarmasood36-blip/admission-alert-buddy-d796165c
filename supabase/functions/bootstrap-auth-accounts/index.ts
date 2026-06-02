@@ -28,6 +28,13 @@ const STAFF_ROLE_MAP: Record<string, string> = {
   "Exam Incharge": "exam_incharge",
 };
 
+// Deterministic suffix appended to every password so even short legacy
+// passwords (< 6 chars) satisfy Supabase Auth's minimum. The login UI
+// applies the same suffix client-side, so users still type their original
+// password.
+const PWD_SUFFIX = "!Lov1";
+const padPassword = (p: string) => `${p}${PWD_SUFFIX}`;
+
 function syntheticStaffEmail(mobile: string) {
   return `staff-${mobile.replace(/\D/g, "")}@school.local`;
 }
