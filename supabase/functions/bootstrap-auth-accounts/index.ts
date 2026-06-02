@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     const password = String(row.parent_password ?? "").trim();
     const parentName = String(row.parent_name ?? row.father_name ?? "Parent").trim();
     const mobile = String(row.parent_mobile ?? row.father_mobile ?? "").trim();
-    if (!admission || !password || password.length < 6) {
+    if (!admission || !password) {
       report.students.skipped++;
       report.students.failed.push({ id: row.id, reason: "missing admission/password" });
       continue;
@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
     const email = syntheticParentEmail(admission);
     const { data: created, error: cErr } = await supabase.auth.admin.createUser({
       email,
-      password,
+      password: padPassword(password),
       email_confirm: true,
       user_metadata: {
         full_name: parentName,
