@@ -39,6 +39,16 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  // Auth: caller must be signed in as cashier/manager/principal
+  const authHeader = req.headers.get("Authorization") || "";
+  if (!authHeader.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+  const { data: claims } = await supabase.auth.getClaims(authHeader.replace("Bearer ", ""));
+  const uid = (claims as any)?.claims?.sub;
+  if (!uid) return json({ error: "Unauthorized" }, 401);
+  const { data: rolesRows } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+  const allowed = (rolesRows ?? []).some((r: any) => ["cashier","manager","principal"].includes(r.role));
+  if (!allowed) return json({ error: "Forbidden" }, 403);
+
   const { data: intent, error: iErr } = await supabase
     .from("payment_intents")
     .select("*")
