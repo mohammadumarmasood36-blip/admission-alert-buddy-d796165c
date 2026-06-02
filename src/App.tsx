@@ -28,7 +28,10 @@ import InstallApp from "./pages/InstallApp";
 const queryClient = new QueryClient();
 
 function PortalRoutes() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-pulse text-muted-foreground">Loading…</div></div>;
+  }
   if (!isAuthenticated) return <PortalLoginPage />;
   return <SchoolProvider><AuthenticatedPortalRoutes role={user?.role} /></SchoolProvider>;
 }
