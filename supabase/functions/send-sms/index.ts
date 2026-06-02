@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,20 @@ serve(async (req) => {
   }
 
   try {
+    // Auth: caller must be signed in as staff
+    const authHeader = req.headers.get("Authorization") || "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const adminClient = createClient(supabaseUrl, serviceKey);
+    const { data: claims } = await adminClient.auth.getClaims(authHeader.replace("Bearer ", ""));
+    const uid = (claims as any)?.claims?.sub;
+    if (!uid) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { data: staffCheck } = await adminClient.rpc("is_staff", { _user_id: uid });
+    if (!staffCheck) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
     const { phoneNumber, admissionNumber, password, studentName, schoolName } = await req.json();
 
     if (!phoneNumber || !admissionNumber || !password) {
