@@ -54,6 +54,23 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  // ?reset=1 unlinks all bootstrapped auth users and deletes them, so a
+  // re-run produces consistent (padded) passwords across the board.
+  const url = new URL(req.url);
+  if (url.searchParams.get("reset") === "1") {
+    const { data: linkedStaff } = await supabase.from("staff").select("user_id").not("user_id","is",null);
+    const { data: linkedStu }   = await supabase.from("students").select("parent_user_id").not("parent_user_id","is",null);
+    const uids = [
+      ...(linkedStaff ?? []).map((r:any)=>r.user_id),
+      ...(linkedStu   ?? []).map((r:any)=>r.parent_user_id),
+    ].filter(Boolean);
+    await supabase.from("staff").update({ user_id: null }).not("user_id","is",null);
+    await supabase.from("students").update({ parent_user_id: null }).not("parent_user_id","is",null);
+    for (const uid of uids) {
+      try { await supabase.auth.admin.deleteUser(uid); } catch {}
+    }
+  }
+
   const report = {
     staff: { processed: 0, created: 0, skipped: 0, failed: [] as any[] },
     students: { processed: 0, created: 0, skipped: 0, failed: [] as any[] },
