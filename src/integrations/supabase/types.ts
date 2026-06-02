@@ -593,6 +593,39 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          admission_number: string | null
+          created_at: string
+          full_name: string | null
+          mobile: string | null
+          staff_id: string | null
+          student_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admission_number?: string | null
+          created_at?: string
+          full_name?: string | null
+          mobile?: string | null
+          staff_id?: string | null
+          student_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admission_number?: string | null
+          created_at?: string
+          full_name?: string | null
+          mobile?: string | null
+          staff_id?: string | null
+          student_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -696,6 +729,7 @@ export type Database = {
           Role: string
           salary_paid: boolean | null
           teaching_classes: Json | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -710,6 +744,7 @@ export type Database = {
           Role: string
           salary_paid?: boolean | null
           teaching_classes?: Json | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -724,6 +759,7 @@ export type Database = {
           Role?: string
           salary_paid?: boolean | null
           teaching_classes?: Json | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -809,6 +845,7 @@ export type Database = {
           parent_mobile: string | null
           parent_name: string | null
           parent_password: string | null
+          parent_user_id: string | null
           payment_mode: string | null
           photo_file: string | null
           pickup_location: string | null
@@ -837,6 +874,7 @@ export type Database = {
           parent_mobile?: string | null
           parent_name?: string | null
           parent_password?: string | null
+          parent_user_id?: string | null
           payment_mode?: string | null
           photo_file?: string | null
           pickup_location?: string | null
@@ -865,6 +903,7 @@ export type Database = {
           parent_mobile?: string | null
           parent_name?: string | null
           parent_password?: string | null
+          parent_user_id?: string | null
           payment_mode?: string | null
           photo_file?: string | null
           pickup_location?: string | null
@@ -909,15 +948,50 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "manager"
+        | "principal"
+        | "teacher"
+        | "cashier"
+        | "exam_incharge"
+        | "parent"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1044,6 +1118,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "manager",
+        "principal",
+        "teacher",
+        "cashier",
+        "exam_incharge",
+        "parent",
+      ],
+    },
   },
 } as const
