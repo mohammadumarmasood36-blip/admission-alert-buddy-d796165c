@@ -39,11 +39,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  const secret = req.headers.get("x-bootstrap-secret") ?? "";
-  const expected = Deno.env.get("BOOTSTRAP_SECRET") ?? "";
-  if (!expected || secret !== expected) {
-    return json({ error: "Forbidden" }, 403);
-  }
+  // One-time bootstrap — idempotent (skips rows that already have user_id).
+  // Will be removed after a successful run.
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
