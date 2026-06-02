@@ -6,15 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/context/AuthContext";
 
 interface ChangePasswordProps {
-  userId: string;
-  userType: "staff" | "student";
+  userId?: string;
+  userType?: "staff" | "student";
 }
 
-export default function ChangePassword({ userId, userType }: ChangePasswordProps) {
-  const { token } = useAuth();
+export default function ChangePassword(_props: ChangePasswordProps) {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -40,15 +38,29 @@ export default function ChangePassword({ userId, userType }: ChangePasswordProps
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("change-password", {
-        body: { userId, userType, oldPassword, newPassword, token },
-      });
-
-      if (error || !data?.success) {
-        toast.error(data?.error || "Failed to change password");
+      // Re-authenticate with the current password to verify it.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const email = sessionData.session?.user?.email;
+      if (!email) {
+        toast.error("Not signed in");
         return;
       }
-
+      const { error: reauthErr } = await supabase.auth.signInWithPassword({
+        email,
+        password: `${oldPassword}!Lov1`,
+      });
+      if (reauthErr) {
+        toast.error("Current password is incorrect");
+        return;
+      }
+      // Update to the new password (also padded so the helper keeps working).
+      const { error: updErr } = await supabase.auth.updateUser({
+        password: `${newPassword}!Lov1`,
+      });
+      if (updErr) {
+        toast.error(updErr.message);
+        return;
+      }
       setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");

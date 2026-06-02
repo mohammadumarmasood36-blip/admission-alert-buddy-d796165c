@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { GraduationCap, User, BookOpen, Settings, Loader2, Shield, Wallet, ClipboardList, School } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { syntheticStaffEmail, syntheticParentEmail, padPassword } from "@/lib/authHelpers";
 
 const roles: { value: UserRole; label: string; icon: React.ReactNode; description: string; gradient: string }[] = [
   { value: "parent", label: "Parent", icon: <User className="w-6 h-6" />, description: "View your child's progress", gradient: "from-emerald-500 to-teal-500" },
@@ -19,7 +20,7 @@ const roles: { value: UserRole; label: string; icon: React.ReactNode; descriptio
 ];
 
 export default function PortalLoginPage() {
-  const { login, session, setSession, sessionOptions } = useAuth();
+  const { session, setSession, sessionOptions } = useAuth();
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -31,12 +32,30 @@ export default function PortalLoginPage() {
 
     setLoggingIn(true);
     try {
-      const { data, error } = await supabase.functions.invoke("login", {
-        body: { role: selectedRole, identifier: identifier.trim(), password: password },
+      const email = selectedRole === "parent"
+        ? syntheticParentEmail(identifier.trim())
+        : syntheticStaffEmail(identifier.trim());
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: padPassword(password),
       });
-      if (error || !data?.user || !data?.token) { toast.error(data?.error || "Invalid credentials"); return; }
-      login(data.user, data.token);
-      toast.success(`Welcome, ${data.user.name}!`);
+      if (error || !data.user) {
+        toast.error("Invalid credentials");
+        return;
+      }
+      // Verify the signed-in account actually has the role they picked.
+      const { data: rolesRows } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id);
+      const hasRole = (rolesRows ?? []).some((r) => r.role === selectedRole);
+      if (!hasRole) {
+        await supabase.auth.signOut();
+        toast.error(`This account is not registered as ${selectedRole}.`);
+        return;
+      }
+      toast.success("Signed in!");
+      // AuthContext's onAuthStateChange handler will populate `user`.
     } catch (err) {
       console.error("Login error:", err);
       toast.error("Login failed. Please try again.");
@@ -44,6 +63,7 @@ export default function PortalLoginPage() {
       setLoggingIn(false);
     }
   };
+
 
   const getPlaceholder = () => selectedRole === "parent" ? "Admission Number (e.g. 0001)" : "Mobile Number";
   const getLabel = () => selectedRole === "parent" ? "Admission Number" : "Mobile Number";

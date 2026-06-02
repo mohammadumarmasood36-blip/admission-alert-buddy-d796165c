@@ -39,6 +39,25 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Auth: caller must be signed in as staff.
+    const authHeader = req.headers.get("Authorization") || "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const adminClient = createClient(supabaseUrl, serviceKey);
+    const { data: claims } = await adminClient.auth.getClaims(authHeader.replace("Bearer ", ""));
+    const uid = (claims as any)?.claims?.sub;
+    if (!uid) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const { data: staffCheck } = await adminClient.rpc("is_staff", { _user_id: uid });
+    if (!staffCheck) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { student_ids, title, body } = await req.json();
 
     if (!student_ids || !title || !body) {
@@ -48,9 +67,7 @@ serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = adminClient;
 
     // Get all push subscriptions for the given student IDs
     const { data: subscriptions, error } = await supabase
