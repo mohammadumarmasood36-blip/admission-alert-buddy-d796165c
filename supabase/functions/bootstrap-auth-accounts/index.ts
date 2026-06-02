@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     const fullName = String(row["Full Name"] ?? "").trim();
     const roleRaw = String(row.Role ?? "").trim();
     const mappedRole = STAFF_ROLE_MAP[roleRaw] ?? roleRaw.toLowerCase();
-    if (!mobile || !password || password.length < 6 || !mappedRole) {
+    if (!mobile || !password || !mappedRole) {
       report.staff.skipped++;
       report.staff.failed.push({ id: row.id, reason: "missing mobile/password/role" });
       continue;
@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
     const email = syntheticStaffEmail(mobile);
     const { data: created, error: cErr } = await supabase.auth.admin.createUser({
       email,
-      password,
+      password: padPassword(password),
       email_confirm: true,
       user_metadata: {
         full_name: fullName,
