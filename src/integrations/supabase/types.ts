@@ -978,7 +978,15 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_assigned_class_teacher: {
+        Args: { _class: string; _section: string; _user_id: string }
+        Returns: boolean
+      }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      parent_of_class_section: {
+        Args: { _class: string; _section: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
