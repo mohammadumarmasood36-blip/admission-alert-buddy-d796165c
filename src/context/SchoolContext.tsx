@@ -223,15 +223,30 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         "Full Name": data.name,
         Role: dbRole,
         "Monthly Salary": data.salary,
-        "Mobile number": data.mobileNumber || null,
+        "Mobile number": data.mobileNumber ? Number(data.mobileNumber) : null,
         Photo: data.photoFile || null,
         Resume: data.resumeFile || null,
         teaching_classes: data.teachingClasses,
-        "Login Password": data.loginPassword || null,
         join_date: data.joinDate || new Date().toISOString().split("T")[0],
         salary_paid: false,
       }]).select().single();
       if (error) throw error;
+
+      // Provision an auth account for this staff member (no plaintext password stored).
+      if (result && data.loginPassword && data.mobileNumber) {
+        const { error: pErr } = await supabase.functions.invoke("provision-user", {
+          body: {
+            kind: "staff",
+            staffId: result.id,
+            mobile: String(data.mobileNumber),
+            fullName: data.name,
+            role: data.role,
+            password: data.loginPassword,
+          },
+        });
+        if (pErr) console.error("provision-user (staff) failed:", pErr);
+      }
+
       if (result) setStaff((prev) => [...prev, mapStaffRow(result)]);
       toast.success("Staff added successfully");
     } catch (err: any) {
