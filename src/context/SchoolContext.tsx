@@ -160,7 +160,7 @@ function mapStudentRow(row: any): Student {
     busNumber: row.bus_number || undefined,
     parentName: row.parent_name || undefined,
     parentMobile: row.parent_mobile || undefined,
-    parentPassword: row.parent_password || undefined,
+    parentPassword: undefined,
   };
 }
 
