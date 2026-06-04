@@ -14,7 +14,7 @@ const config: CapacitorConfig = {
   appName: "UPS Portal",
   webDir: "dist",
   server: {
-    url: "https://5457fda8-6940-41ce-8cd6-295d688ecd06.lovableproject.com/portal?forceHideBadge=true",
+    url: "https://admission-alert-buddy.lovable.app/portal",
     cleartext: true,
   },
 };
