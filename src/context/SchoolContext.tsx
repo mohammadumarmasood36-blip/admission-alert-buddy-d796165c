@@ -333,9 +333,23 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         transport_facility: data.transportFacility || false,
         pickup_location: data.pickupLocation || null,
         bus_number: data.busNumber || null,
-        parent_password: data.parentPassword || null,
       }).select().single();
       if (error) throw error;
+
+      // Provision parent auth account (replaces old plaintext parent_password column).
+      if (result && data.parentPassword) {
+        const { error: pErr } = await supabase.functions.invoke("provision-user", {
+          body: {
+            kind: "parent",
+            studentId: result.id,
+            admissionNumber,
+            fullName: data.parentName || data.fatherName || data.motherName || data.name,
+            mobile: data.parentMobile || data.fatherMobile || data.motherMobile || null,
+            password: data.parentPassword,
+          },
+        });
+        if (pErr) console.error("provision-user (parent) failed:", pErr);
+      }
 
       // Update counter (manual upsert by unique key to avoid conflict-target ambiguity)
       const { data: existingCounter } = await supabase.from("app_settings").select("id").eq("key", "admission_counter").maybeSingle();
