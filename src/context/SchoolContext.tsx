@@ -223,7 +223,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         "Full Name": data.name,
         Role: dbRole,
         "Monthly Salary": data.salary,
-        "Mobile number": data.mobileNumber ? Number(data.mobileNumber) : null,
+        "Mobile number": data.mobileNumber ? String(data.mobileNumber) : null,
         Photo: data.photoFile || null,
         Resume: data.resumeFile || null,
         teaching_classes: data.teachingClasses,
