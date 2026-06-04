@@ -26,11 +26,25 @@ serve(async (req) => {
     const { data: staffCheck } = await adminClient.rpc("is_staff", { _user_id: uid });
     if (!staffCheck) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { phoneNumber, admissionNumber, password, studentName, schoolName } = await req.json();
+    const { admissionNumber, password, studentName, schoolName } = await req.json();
 
-    if (!phoneNumber || !admissionNumber || !password) {
+    if (!admissionNumber || !password) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: phoneNumber, admissionNumber, password" }),
+        JSON.stringify({ error: "Missing required fields: admissionNumber, password" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Authoritative lookup — ignore any caller-supplied phone number
+    const { data: student } = await adminClient
+      .from("students")
+      .select("parent_mobile, father_mobile, mother_mobile")
+      .eq("admission_number", admissionNumber)
+      .maybeSingle();
+    const phoneNumber = student?.parent_mobile || student?.father_mobile || student?.mother_mobile;
+    if (!phoneNumber) {
+      return new Response(
+        JSON.stringify({ error: "No parent contact on file for this student" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
