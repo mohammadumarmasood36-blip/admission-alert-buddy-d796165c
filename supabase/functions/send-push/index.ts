@@ -48,8 +48,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const adminClient = createClient(supabaseUrl, serviceKey);
-    const { data: claims } = await adminClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-    const uid = (claims as any)?.claims?.sub;
+    const { data: userData } = await adminClient.auth.getUser(authHeader.replace("Bearer ", ""));
+    const uid = userData?.user?.id;
     if (!uid) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }

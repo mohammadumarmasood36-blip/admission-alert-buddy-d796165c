@@ -20,8 +20,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceKey);
-    const { data: claims } = await adminClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-    const uid = (claims as any)?.claims?.sub;
+    const { data: userData } = await adminClient.auth.getUser(authHeader.replace("Bearer ", ""));
+    const uid = userData?.user?.id;
     if (!uid) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const { data: staffCheck } = await adminClient.rpc("is_staff", { _user_id: uid });
     if (!staffCheck) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
