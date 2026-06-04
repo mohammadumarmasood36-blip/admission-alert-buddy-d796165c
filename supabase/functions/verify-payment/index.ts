@@ -94,7 +94,8 @@ Deno.serve(async (req) => {
       transaction_id: transactionId,
     });
     if (pErr) {
-      return json({ error: "Failed to record payment", detail: pErr.message }, 500);
+      console.error("fee_payments insert failed:", pErr);
+      return json({ error: "Failed to record payment" }, 500);
     }
   }
 
