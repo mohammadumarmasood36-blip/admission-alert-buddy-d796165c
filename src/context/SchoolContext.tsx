@@ -198,7 +198,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     try {
       const [staffRes, studentsRes, sectionsRes, feeRes] = await Promise.all([
         supabase.from("staff").select('id, "Full Name", Role, "Monthly Salary", salary_paid, join_date, Photo, Resume, "Mobile number", teaching_classes'),
-        supabase.from("students").select("id, admission_number, name, class_name, section, fee_amount, fee_paid, enroll_date, installments, payment_mode, parent_name, parent_mobile, parent_password, roll_number, photo_file, father_name, father_mobile, father_email, mother_name, mother_mobile, mother_email, address, transport_facility, pickup_location, bus_number"),
+        supabase.from("students").select("id, admission_number, name, class_name, section, fee_amount, fee_paid, enroll_date, installments, payment_mode, parent_name, parent_mobile, roll_number, photo_file, father_name, father_mobile, father_email, mother_name, mother_mobile, mother_email, address, transport_facility, pickup_location, bus_number"),
         supabase.from("sections").select("*"),
         supabase.from("fee_payments").select("*").order("payment_date", { ascending: false }),
       ]);
