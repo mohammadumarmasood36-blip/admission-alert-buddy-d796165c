@@ -1376,6 +1376,9 @@ export default function StudentsPage() {
                   onClick={async () => {
                     const printWindow = window.open("", "_blank");
                     if (printWindow) {
+                      const esc = (v: unknown) => String(v ?? "")
+                        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
                       printWindow.document.write(`
                         <html><head><title>Student Credentials</title>
                         <style>body{font-family:Arial,sans-serif;padding:40px;text-align:center}
@@ -1383,9 +1386,9 @@ export default function StudentsPage() {
                         .label{color:#666;font-size:13px}.value{font-size:24px;font-weight:bold;letter-spacing:2px}</style>
                         </head><body>
                         <h2>Parent Portal Login Credentials</h2>
-                        <p style="color:#666">Student: <strong>${credentialsDialog.studentName}</strong></p>
-                        <div class="field"><div class="label">Admission Number</div><div class="value">${credentialsDialog.admissionNumber}</div></div>
-                        <div class="field"><div class="label">Password</div><div class="value">${credentialsDialog.password}</div></div>
+                        <p style="color:#666">Student: <strong>${esc(credentialsDialog.studentName)}</strong></p>
+                        <div class="field"><div class="label">Admission Number</div><div class="value">${esc(credentialsDialog.admissionNumber)}</div></div>
+                        <div class="field"><div class="label">Password</div><div class="value">${esc(credentialsDialog.password)}</div></div>
                         <p style="margin-top:30px;color:#999;font-size:12px">Please keep these credentials safe.</p>
                         </body></html>`);
                       printWindow.document.close();
