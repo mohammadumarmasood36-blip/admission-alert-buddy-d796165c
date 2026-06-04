@@ -40,8 +40,11 @@ export default function StudentIdCard({ student, open, onOpenChange, schoolName 
     if (!printContent) return;
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
+    const esc = (v: unknown) => String(v ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     printWindow.document.write(`
-      <html><head><title>ID Card - ${student.name}</title>
+      <html><head><title>ID Card - ${esc(student.name)}</title>
       <style>@media print{@page{size:2.5in 4in;margin:0;}}body{margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#fff;font-family:'Segoe UI',system-ui,sans-serif;}</style>
       </head><body>${printContent.innerHTML}</body></html>
     `);
