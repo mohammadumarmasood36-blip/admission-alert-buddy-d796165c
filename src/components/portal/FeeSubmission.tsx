@@ -356,6 +356,9 @@ function PaymentModeDialog({
     if (!data) return;
     const win = window.open("", "_blank");
     if (!win) return;
+    const e = (v: unknown) => String(v ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     win.document.write(`
       <html><head><title>Fee Receipt</title>
       <style>
@@ -385,33 +388,33 @@ function PaymentModeDialog({
       </div>
       <div class="receipt-title">Fee Receipt</div>
       <div class="info-grid">
-        <div class="info-row"><span class="label">Receipt No:</span><span class="value">${data.receiptNumber}</span></div>
-        <div class="info-row"><span class="label">Date:</span><span class="value">${data.date}</span></div>
-        <div class="info-row"><span class="label">Student:</span><span class="value">${data.studentName}</span></div>
-        <div class="info-row"><span class="label">Adm. No:</span><span class="value">${data.admissionNumber}</span></div>
-        <div class="info-row"><span class="label">Class:</span><span class="value">${data.className} (${data.section})</span></div>
-        <div class="info-row"><span class="label">Session:</span><span class="value">${data.session}</span></div>
-        <div class="info-row"><span class="label">Payment Mode:</span><span class="value" style="text-transform:capitalize">${data.paymentMode}</span></div>
-        <div class="info-row"><span class="label">Cashier:</span><span class="value">${data.cashierName}</span></div>
+        <div class="info-row"><span class="label">Receipt No:</span><span class="value">${e(data.receiptNumber)}</span></div>
+        <div class="info-row"><span class="label">Date:</span><span class="value">${e(data.date)}</span></div>
+        <div class="info-row"><span class="label">Student:</span><span class="value">${e(data.studentName)}</span></div>
+        <div class="info-row"><span class="label">Adm. No:</span><span class="value">${e(data.admissionNumber)}</span></div>
+        <div class="info-row"><span class="label">Class:</span><span class="value">${e(data.className)} (${e(data.section)})</span></div>
+        <div class="info-row"><span class="label">Session:</span><span class="value">${e(data.session)}</span></div>
+        <div class="info-row"><span class="label">Payment Mode:</span><span class="value" style="text-transform:capitalize">${e(data.paymentMode)}</span></div>
+        <div class="info-row"><span class="label">Cashier:</span><span class="value">${e(data.cashierName)}</span></div>
       </div>
       ${data.transactionId ? `
         <div style="background:#f0f4ff;padding:8px 12px;border-radius:6px;margin-bottom:12px;font-size:12px;">
-          <strong>Transaction ID:</strong> ${data.transactionId}
+          <strong>Transaction ID:</strong> ${e(data.transactionId)}
         </div>
       ` : ""}
       ${data.chequeInfo ? `
         <div style="background:#f9f9f9;padding:8px 12px;border-radius:6px;margin-bottom:12px;font-size:12px;">
-          <strong>Cheque Details:</strong> ${data.chequeInfo.bankName} — No. ${data.chequeInfo.chequeNumber} — Date: ${data.chequeInfo.chequeDate}
-          ${data.chequeInfo.branchName ? ` — Branch: ${data.chequeInfo.branchName}` : ""}
-          ${data.chequeInfo.ifscCode ? ` — IFSC: ${data.chequeInfo.ifscCode}` : ""}
-          ${data.chequeInfo.accountNumber ? ` — A/C: ${data.chequeInfo.accountNumber}` : ""}
+          <strong>Cheque Details:</strong> ${e(data.chequeInfo.bankName)} — No. ${e(data.chequeInfo.chequeNumber)} — Date: ${e(data.chequeInfo.chequeDate)}
+          ${data.chequeInfo.branchName ? ` — Branch: ${e(data.chequeInfo.branchName)}` : ""}
+          ${data.chequeInfo.ifscCode ? ` — IFSC: ${e(data.chequeInfo.ifscCode)}` : ""}
+          ${data.chequeInfo.accountNumber ? ` — A/C: ${e(data.chequeInfo.accountNumber)}` : ""}
         </div>
       ` : ""}
       <table>
         <thead><tr><th>S.No</th><th>Quarter</th><th>Amount (₹)</th></tr></thead>
         <tbody>
-          ${data.quarters.map((q: string, i: number) => `<tr><td>${i + 1}</td><td>${q}</td><td>₹ ${Math.round(data.totalAmount / data.quarters.length).toLocaleString("en-IN")}</td></tr>`).join("")}
-          <tr class="total-row"><td colspan="2">Total</td><td>₹ ${data.totalAmount.toLocaleString("en-IN")}</td></tr>
+          ${data.quarters.map((q: string, i: number) => `<tr><td>${i + 1}</td><td>${e(q)}</td><td>₹ ${Math.round(data.totalAmount / data.quarters.length).toLocaleString("en-IN")}</td></tr>`).join("")}
+          <tr class="total-row"><td colspan="2">Total</td><td>₹ ${Number(data.totalAmount).toLocaleString("en-IN")}</td></tr>
         </tbody>
       </table>
       <div class="signature">
