@@ -100,6 +100,9 @@ export default function FeesPage() {
     if (!printContent) return;
     const win = window.open("", "_blank");
     if (!win) return;
+    const esc = (v: unknown) => String(v ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     win.document.write(`
       <html><head><title>Fee Report</title>
       <style>
@@ -111,8 +114,8 @@ export default function FeesPage() {
         th { background: #f5f5f5; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
         .paid { color: #16a34a; } .unpaid { color: #dc2626; }
       </style></head><body>
-      <h1>Fee Report — Session ${session}${classFilter !== "all" ? ` — ${classFilter}` : ""}${sectionFilter !== "all" ? ` (Section ${sectionFilter})` : ""}</h1>
-      <p>Generated on ${new Date().toLocaleDateString()}</p>
+      <h1>Fee Report — Session ${esc(session)}${classFilter !== "all" ? ` — ${esc(classFilter)}` : ""}${sectionFilter !== "all" ? ` (Section ${esc(sectionFilter)})` : ""}</h1>
+      <p>Generated on ${esc(new Date().toLocaleDateString())}</p>
       ${printContent.innerHTML}
       </body></html>
     `);

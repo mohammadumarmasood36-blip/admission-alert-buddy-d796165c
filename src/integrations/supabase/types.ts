@@ -721,7 +721,6 @@ export type Database = {
           "Full Name": string
           id: string
           join_date: string | null
-          "Login Password": string | null
           "Mobile number": string | null
           "Monthly Salary": number | null
           Photo: string | null
@@ -736,7 +735,6 @@ export type Database = {
           "Full Name": string
           id?: string
           join_date?: string | null
-          "Login Password"?: string | null
           "Mobile number"?: string | null
           "Monthly Salary"?: number | null
           Photo?: string | null
@@ -751,7 +749,6 @@ export type Database = {
           "Full Name"?: string
           id?: string
           join_date?: string | null
-          "Login Password"?: string | null
           "Mobile number"?: string | null
           "Monthly Salary"?: number | null
           Photo?: string | null
@@ -844,7 +841,6 @@ export type Database = {
           name: string
           parent_mobile: string | null
           parent_name: string | null
-          parent_password: string | null
           parent_user_id: string | null
           payment_mode: string | null
           photo_file: string | null
@@ -873,7 +869,6 @@ export type Database = {
           name: string
           parent_mobile?: string | null
           parent_name?: string | null
-          parent_password?: string | null
           parent_user_id?: string | null
           payment_mode?: string | null
           photo_file?: string | null
@@ -902,7 +897,6 @@ export type Database = {
           name?: string
           parent_mobile?: string | null
           parent_name?: string | null
-          parent_password?: string | null
           parent_user_id?: string | null
           payment_mode?: string | null
           photo_file?: string | null

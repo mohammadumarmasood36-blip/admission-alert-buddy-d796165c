@@ -160,7 +160,7 @@ function mapStudentRow(row: any): Student {
     busNumber: row.bus_number || undefined,
     parentName: row.parent_name || undefined,
     parentMobile: row.parent_mobile || undefined,
-    parentPassword: row.parent_password || undefined,
+    parentPassword: undefined,
   };
 }
 
@@ -198,7 +198,7 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
     try {
       const [staffRes, studentsRes, sectionsRes, feeRes] = await Promise.all([
         supabase.from("staff").select('id, "Full Name", Role, "Monthly Salary", salary_paid, join_date, Photo, Resume, "Mobile number", teaching_classes'),
-        supabase.from("students").select("id, admission_number, name, class_name, section, fee_amount, fee_paid, enroll_date, installments, payment_mode, parent_name, parent_mobile, parent_password, roll_number, photo_file, father_name, father_mobile, father_email, mother_name, mother_mobile, mother_email, address, transport_facility, pickup_location, bus_number"),
+        supabase.from("students").select("id, admission_number, name, class_name, section, fee_amount, fee_paid, enroll_date, installments, payment_mode, parent_name, parent_mobile, roll_number, photo_file, father_name, father_mobile, father_email, mother_name, mother_mobile, mother_email, address, transport_facility, pickup_location, bus_number"),
         supabase.from("sections").select("*"),
         supabase.from("fee_payments").select("*").order("payment_date", { ascending: false }),
       ]);
@@ -223,15 +223,30 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         "Full Name": data.name,
         Role: dbRole,
         "Monthly Salary": data.salary,
-        "Mobile number": data.mobileNumber || null,
+        "Mobile number": data.mobileNumber ? String(data.mobileNumber) : null,
         Photo: data.photoFile || null,
         Resume: data.resumeFile || null,
         teaching_classes: data.teachingClasses,
-        "Login Password": data.loginPassword || null,
         join_date: data.joinDate || new Date().toISOString().split("T")[0],
         salary_paid: false,
       }]).select().single();
       if (error) throw error;
+
+      // Provision an auth account for this staff member (no plaintext password stored).
+      if (result && data.loginPassword && data.mobileNumber) {
+        const { error: pErr } = await supabase.functions.invoke("provision-user", {
+          body: {
+            kind: "staff",
+            staffId: result.id,
+            mobile: String(data.mobileNumber),
+            fullName: data.name,
+            role: data.role,
+            password: data.loginPassword,
+          },
+        });
+        if (pErr) console.error("provision-user (staff) failed:", pErr);
+      }
+
       if (result) setStaff((prev) => [...prev, mapStaffRow(result)]);
       toast.success("Staff added successfully");
     } catch (err: any) {
@@ -318,9 +333,23 @@ export function SchoolProvider({ children }: { children: ReactNode }) {
         transport_facility: data.transportFacility || false,
         pickup_location: data.pickupLocation || null,
         bus_number: data.busNumber || null,
-        parent_password: data.parentPassword || null,
       }).select().single();
       if (error) throw error;
+
+      // Provision parent auth account (replaces old plaintext parent_password column).
+      if (result && data.parentPassword) {
+        const { error: pErr } = await supabase.functions.invoke("provision-user", {
+          body: {
+            kind: "parent",
+            studentId: result.id,
+            admissionNumber,
+            fullName: data.parentName || data.fatherName || data.motherName || data.name,
+            mobile: data.parentMobile || data.fatherMobile || data.motherMobile || null,
+            password: data.parentPassword,
+          },
+        });
+        if (pErr) console.error("provision-user (parent) failed:", pErr);
+      }
 
       // Update counter (manual upsert by unique key to avoid conflict-target ambiguity)
       const { data: existingCounter } = await supabase.from("app_settings").select("id").eq("key", "admission_counter").maybeSingle();
