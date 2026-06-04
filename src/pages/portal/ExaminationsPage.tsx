@@ -428,25 +428,25 @@ export default function ExaminationsPage() {
               <div class="admit-card" style="border: 2px solid #1a2744; border-radius: 8px; padding: 8px; box-sizing: border-box;">
                 <div style="text-align:center; border-bottom: 2px solid #c49a3c; padding-bottom: 4px; margin-bottom: 6px;">
                   <h3 style="margin:0; color:#1a2744; font-size:11px;">Universal Public School</h3>
-                  <p style="margin:1px 0 0; font-size:8px; color:#666;">ADMIT CARD — ${selectedExam?.name || ""}</p>
+                  <p style="margin:1px 0 0; font-size:8px; color:#666;">ADMIT CARD — ${esc(selectedExam?.name || "")}</p>
                 </div>
                 <div style="display:flex; gap:6px; margin-bottom:6px;">
                   <div style="flex:1;">
                     <table style="font-size:8px; width:100%;">
-                      <tr><td style="color:#888; padding:1px 2px;">Name:</td><td style="font-weight:bold;">${student.name}</td></tr>
-                      <tr><td style="color:#888; padding:1px 2px;">Guardian:</td><td>${student.fatherName || student.motherName || "—"}</td></tr>
-                      <tr><td style="color:#888; padding:1px 2px;">Class:</td><td>${student.className} (${student.section})</td></tr>
-                      <tr><td style="color:#888; padding:1px 2px;">Adm No:</td><td>${student.admissionNumber}</td></tr>
+                      <tr><td style="color:#888; padding:1px 2px;">Name:</td><td style="font-weight:bold;">${esc(student.name)}</td></tr>
+                      <tr><td style="color:#888; padding:1px 2px;">Guardian:</td><td>${esc(student.fatherName || student.motherName || "—")}</td></tr>
+                      <tr><td style="color:#888; padding:1px 2px;">Class:</td><td>${esc(student.className)} (${esc(student.section)})</td></tr>
+                      <tr><td style="color:#888; padding:1px 2px;">Adm No:</td><td>${esc(student.admissionNumber)}</td></tr>
                     </table>
                   </div>
                   <div style="width:40px; height:50px; border:1px solid #ddd; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:6px; color:#999; overflow:hidden;">
-                    ${student.photoFile ? `<img src="${student.photoFile}" style="width:100%;height:100%;object-fit:cover;" />` : "Photo"}
+                    ${student.photoFile ? `<img src="${esc(student.photoFile)}" style="width:100%;height:100%;object-fit:cover;" />` : "Photo"}
                   </div>
                 </div>
                 <table style="width:100%; border-collapse:collapse; font-size:7px; margin-bottom:4px;">
                   <thead><tr style="background:#1a2744; color:white;"><th style="padding:2px;">Subject</th><th style="padding:2px;">Date</th><th style="padding:2px;">Time</th></tr></thead>
                   <tbody>
-                    ${classSchedules2.slice(0, 6).map(s2 => `<tr style="border-bottom:1px solid #eee;"><td style="padding:2px;">${s2.subject}</td><td style="padding:2px; text-align:center;">${new Date(s2.date).toLocaleDateString("en-IN")}</td><td style="padding:2px; text-align:center;">${s2.start_time}-${s2.end_time}</td></tr>`).join("")}
+                    ${classSchedules2.slice(0, 6).map(s2 => `<tr style="border-bottom:1px solid #eee;"><td style="padding:2px;">${esc(s2.subject)}</td><td style="padding:2px; text-align:center;">${esc(new Date(s2.date).toLocaleDateString("en-IN"))}</td><td style="padding:2px; text-align:center;">${esc(s2.start_time)}-${esc(s2.end_time)}</td></tr>`).join("")}
                   </tbody>
                 </table>
                 <div style="display:flex; justify-content:space-between; font-size:6px; color:#888; border-top:1px solid #eee; padding-top:2px;">
