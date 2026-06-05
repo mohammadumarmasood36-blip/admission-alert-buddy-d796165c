@@ -14,7 +14,7 @@ const config: CapacitorConfig = {
   appName: "UPS Portal",
   webDir: "dist",
   server: {
-    url: "https://admission-alert-buddy.lovable.app/portal",
+    url: "https://universalpublicschool.netlify.app/portal",
     cleartext: true,
   },
 };
