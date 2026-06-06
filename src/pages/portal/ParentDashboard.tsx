@@ -8,16 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   LogOut, GraduationCap, CreditCard, BookOpen, BarChart3, ClipboardList,
   Bell, Calendar as CalendarIcon, School, User, BellRing, Download,
   CheckCircle2, Clock, Sparkles, TrendingUp, FileText, ChevronRight,
+  Home, Inbox, Mail, MailOpen, Paperclip, AlarmClock, Phone, Users, Settings,
 } from "lucide-react";
 import ChangePassword from "@/components/portal/ChangePassword";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { subscribeToPush, isPushSubscribed } from "@/lib/pushNotifications";
 import { exportReportCardPDF } from "@/lib/pdfExport";
+import jsPDF from "jspdf";
 
 const HW_DONE_KEY = "ups_homework_done";
 
@@ -41,6 +45,11 @@ export default function ParentDashboard() {
   const [homework, setHomework] = useState<any[]>([]);
   const [studentSubjects, setStudentSubjects] = useState<Record<string, string[]>>({});
   const [doneHw, setDoneHw] = useState<Set<string>>(() => getDoneHomework());
+  const [readNoticeIds, setReadNoticeIds] = useState<Set<string>>(new Set());
+  const [noticeFilterFrom, setNoticeFilterFrom] = useState("");
+  const [noticeFilterTo, setNoticeFilterTo] = useState("");
+  const [calMonth, setCalMonth] = useState<Date>(new Date());
+  const [activeTab, setActiveTab] = useState("home");
 
   const myChildren = useMemo(() => {
     const child = students.find((s) => s.id === user?.id);
@@ -58,14 +67,15 @@ export default function ParentDashboard() {
       const admNos = myChildren.map((c) => c.admissionNumber);
       if (childIds.length === 0) return;
 
-      const [attRes, examRes, examsRes, schedRes, noticeRes, hwRes, subjRes] = await Promise.all([
+      const [attRes, examRes, examsRes, schedRes, noticeRes, hwRes, subjRes, readRes] = await Promise.all([
         supabase.from("attendance").select("*").in("student_id", childIds).eq("session", session),
         supabase.from("exam_results").select("*").in("admission_no", admNos),
         supabase.from("examinations").select("*"),
         supabase.from("exam_schedules").select("*"),
-        supabase.from("notices").select("*").order("created_at", { ascending: false }).limit(20),
+        supabase.from("notices").select("*").order("created_at", { ascending: false }).limit(50),
         supabase.from("homework").select("*").order("created_at", { ascending: false }).limit(50),
         supabase.from("student_subjects").select("student_id, subject_name").in("student_id", childIds),
+        supabase.from("student_notices").select("notice_id, read").in("student_id", childIds).eq("read", true),
       ]);
       if (attRes.data) setAttendance(attRes.data);
       if (examRes.data) setExamResults(examRes.data);
@@ -73,6 +83,7 @@ export default function ParentDashboard() {
       if (schedRes.data) setExamSchedules(schedRes.data);
       if (noticeRes.data) setNotices(noticeRes.data);
       if (hwRes.data) setHomework(hwRes.data);
+      if (readRes.data) setReadNoticeIds(new Set(readRes.data.map((r: any) => r.notice_id)));
       if (subjRes.data) {
         const map: Record<string, string[]> = {};
         subjRes.data.forEach((r: any) => {
@@ -209,6 +220,77 @@ export default function ParentDashboard() {
         grade: r.grade || "",
       }))
     );
+  };
+
+  // ===== Notices inbox helpers =====
+  const filteredNotices = useMemo(() => {
+    return childNotices.filter((n) => {
+      const d = new Date(n.created_at);
+      if (noticeFilterFrom && d < new Date(noticeFilterFrom)) return false;
+      if (noticeFilterTo) {
+        const to = new Date(noticeFilterTo); to.setHours(23, 59, 59);
+        if (d > to) return false;
+      }
+      return true;
+    });
+  }, [childNotices, noticeFilterFrom, noticeFilterTo]);
+
+  const unreadCount = childNotices.filter((n) => !readNoticeIds.has(n.id)).length;
+
+  const markNoticeRead = async (noticeId: string) => {
+    if (readNoticeIds.has(noticeId) || !child) return;
+    const next = new Set(readNoticeIds); next.add(noticeId);
+    setReadNoticeIds(next);
+    await supabase.from("student_notices").upsert(
+      { student_id: child.id, notice_id: noticeId, read: true } as any,
+      { onConflict: "student_id,notice_id" } as any
+    );
+  };
+
+  // Detect linked entity in notice content (homework/exam keywords)
+  const findRelatedHomework = (n: any) => {
+    const text = `${n.title} ${n.content || ""}`.toLowerCase();
+    return childHomework.find((h) => text.includes(h.title.toLowerCase()) || text.includes((h.subject || "").toLowerCase()));
+  };
+  const findRelatedExam = (n: any) => {
+    const text = `${n.title} ${n.content || ""}`.toLowerCase();
+    return examinations.find((e) => text.includes((e.name || "").toLowerCase()));
+  };
+
+  // ===== Attendance PDF for selected month =====
+  const downloadAttendancePDF = () => {
+    if (!child) return;
+    const month = calMonth.getMonth();
+    const year = calMonth.getFullYear();
+    const monthRecords = childAttendance
+      .filter((a) => { const d = new Date(a.date); return d.getMonth() === month && d.getFullYear() === year; })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const doc = new jsPDF();
+    const monthName = calMonth.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+    doc.setFontSize(16); doc.text("Attendance Report", 105, 15, { align: "center" });
+    doc.setFontSize(12); doc.text(`${child.name} • Class ${child.className}-${child.section}`, 105, 23, { align: "center" });
+    doc.text(`Admission No: ${child.admissionNumber}`, 105, 30, { align: "center" });
+    doc.setFontSize(11); doc.text(`Month: ${monthName}`, 14, 42);
+    const present = monthRecords.filter((r) => r.status === "present").length;
+    const absent = monthRecords.length - present;
+    const pct = monthRecords.length > 0 ? Math.round((present / monthRecords.length) * 100) : 0;
+    doc.text(`Present: ${present}   Absent: ${absent}   Attendance: ${pct}%`, 14, 50);
+    doc.setFontSize(10);
+    let y = 62;
+    doc.setFillColor(30, 58, 95); doc.rect(14, y - 5, 182, 8, "F");
+    doc.setTextColor(255, 255, 255); doc.text("Date", 18, y); doc.text("Day", 70, y); doc.text("Status", 130, y);
+    doc.setTextColor(0, 0, 0); y += 6;
+    monthRecords.forEach((r) => {
+      const d = new Date(r.date);
+      if (y > 280) { doc.addPage(); y = 20; }
+      doc.text(d.toLocaleDateString("en-IN"), 18, y);
+      doc.text(d.toLocaleDateString("en-IN", { weekday: "long" }), 70, y);
+      doc.text((r.status || "").toUpperCase(), 130, y);
+      y += 6;
+    });
+    if (monthRecords.length === 0) { doc.text("No attendance recorded for this month.", 14, y); }
+    doc.save(`Attendance_${child.name}_${monthName.replace(" ", "_")}.pdf`);
+    toast.success(`Downloaded ${monthName} attendance`);
   };
 
   const handleLogout = () => { logout(); navigate("/portal"); };
@@ -363,19 +445,67 @@ export default function ParentDashboard() {
 
       {child && (
         <main className="max-w-5xl mx-auto px-4 sm:px-6 mt-4">
-          <Tabs defaultValue="home">
-            <TabsList className="w-full grid grid-cols-3 sm:grid-cols-7 h-auto bg-muted/50 p-1">
-              <TabsTrigger value="home" className="text-xs py-2">Home</TabsTrigger>
-              <TabsTrigger value="homework" className="text-xs py-2">Homework</TabsTrigger>
-              <TabsTrigger value="timetable" className="text-xs py-2">Timetable</TabsTrigger>
-              <TabsTrigger value="results" className="text-xs py-2">Results</TabsTrigger>
-              <TabsTrigger value="attendance" className="text-xs py-2">Attendance</TabsTrigger>
-              <TabsTrigger value="fees" className="text-xs py-2">Fees</TabsTrigger>
-              <TabsTrigger value="more" className="text-xs py-2">More</TabsTrigger>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="w-full grid grid-cols-4 sm:grid-cols-8 h-auto bg-muted/50 p-1 gap-0.5">
+              <TabsTrigger value="home" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><Home className="w-3.5 h-3.5" /> Home</TabsTrigger>
+              <TabsTrigger value="inbox" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5 relative">
+                <Inbox className="w-3.5 h-3.5" /> Inbox
+                {unreadCount > 0 && <span className="absolute top-0.5 right-0.5 sm:static bg-destructive text-destructive-foreground rounded-full text-[9px] px-1.5 leading-4 min-w-[16px] text-center font-bold">{unreadCount}</span>}
+              </TabsTrigger>
+              <TabsTrigger value="homework" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><BookOpen className="w-3.5 h-3.5" /> HW</TabsTrigger>
+              <TabsTrigger value="timetable" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><CalendarIcon className="w-3.5 h-3.5" /> Exams</TabsTrigger>
+              <TabsTrigger value="results" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Results</TabsTrigger>
+              <TabsTrigger value="attendance" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Att.</TabsTrigger>
+              <TabsTrigger value="fees" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><CreditCard className="w-3.5 h-3.5" /> Fees</TabsTrigger>
+              <TabsTrigger value="more" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><Settings className="w-3.5 h-3.5" /> More</TabsTrigger>
             </TabsList>
+
 
             {/* ===== HOME ===== */}
             <TabsContent value="home" className="space-y-4 mt-5">
+              {/* Profile Widget */}
+              <Card className="animate-fade-in overflow-hidden border-secondary/30 bg-gradient-to-br from-primary/5 via-card to-secondary/5">
+                <CardContent className="pt-5 pb-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <User className="w-5 h-5 text-primary" />
+                    <h3 className="font-display font-bold text-sm">Student Profile</h3>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="p-2.5 rounded-lg bg-card/70 border border-border/40">
+                      <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Class</p>
+                      <p className="font-bold text-sm mt-0.5">{child.className}-{child.section}</p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-card/70 border border-border/40">
+                      <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Adm. No</p>
+                      <p className="font-mono font-bold text-sm mt-0.5 truncate">{child.admissionNumber}</p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-card/70 border border-border/40">
+                      <p className="text-[10px] uppercase text-muted-foreground tracking-wider flex items-center gap-1"><Phone className="w-2.5 h-2.5" /> Father</p>
+                      <p className="font-medium text-xs mt-0.5 truncate">{child.fatherMobile || "—"}</p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-card/70 border border-border/40">
+                      <p className="text-[10px] uppercase text-muted-foreground tracking-wider flex items-center gap-1"><Phone className="w-2.5 h-2.5" /> Mother</p>
+                      <p className="font-medium text-xs mt-0.5 truncate">{child.motherMobile || "—"}</p>
+                    </div>
+                  </div>
+                  {/* Quick actions */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("timetable")}>
+                      <CalendarIcon className="w-3.5 h-3.5 text-primary" /> Timetable
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("homework")}>
+                      <BookOpen className="w-3.5 h-3.5 text-secondary" /> Homework
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("attendance")}>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-success" /> Attendance
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("results")}>
+                      <BarChart3 className="w-3.5 h-3.5 text-info" /> Results
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               {pendingHomework.length > 0 && (
                 <Card className="border-secondary/30 bg-gradient-to-br from-secondary/5 to-transparent animate-fade-in">
                   <CardHeader className="pb-2">
@@ -442,6 +572,79 @@ export default function ParentDashboard() {
               )}
             </TabsContent>
 
+            {/* ===== INBOX ===== */}
+            <TabsContent value="inbox" className="space-y-3 mt-5">
+              <Card className="animate-fade-in">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-display flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2"><Inbox className="w-4 h-4 text-primary" /> Notices Inbox</span>
+                    <Badge variant="outline" className="text-[10px]">{unreadCount} unread</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex flex-wrap gap-2 items-end">
+                    <div className="flex-1 min-w-[120px]">
+                      <label className="text-[10px] uppercase text-muted-foreground tracking-wider">From</label>
+                      <Input type="date" value={noticeFilterFrom} onChange={(e) => setNoticeFilterFrom(e.target.value)} className="h-8 text-xs mt-0.5" />
+                    </div>
+                    <div className="flex-1 min-w-[120px]">
+                      <label className="text-[10px] uppercase text-muted-foreground tracking-wider">To</label>
+                      <Input type="date" value={noticeFilterTo} onChange={(e) => setNoticeFilterTo(e.target.value)} className="h-8 text-xs mt-0.5" />
+                    </div>
+                    {(noticeFilterFrom || noticeFilterTo) && (
+                      <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setNoticeFilterFrom(""); setNoticeFilterTo(""); }}>Clear</Button>
+                    )}
+                  </div>
+
+                  {filteredNotices.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground text-sm">
+                      <Inbox className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                      No notices match the filters.
+                    </div>
+                  ) : filteredNotices.map((n) => {
+                    const isRead = readNoticeIds.has(n.id);
+                    const relHw = findRelatedHomework(n);
+                    const relExam = findRelatedExam(n);
+                    return (
+                      <button
+                        key={n.id}
+                        onClick={() => markNoticeRead(n.id)}
+                        className={`w-full text-left p-3 rounded-xl border transition-all hover:shadow-md ${
+                          isRead ? "bg-muted/30 border-border" : "bg-secondary/5 border-secondary/40 shadow-sm"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isRead ? "bg-muted text-muted-foreground" : "bg-secondary text-secondary-foreground"}`}>
+                            {isRead ? <MailOpen className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className={`text-sm truncate ${isRead ? "font-medium text-muted-foreground" : "font-bold"}`}>{n.title}</p>
+                              <span className="text-[10px] text-muted-foreground shrink-0">{new Date(n.created_at).toLocaleDateString("en-IN")}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2 whitespace-pre-wrap">{n.content}</p>
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {relHw && (
+                                <Badge onClick={(e) => { e.stopPropagation(); markNoticeRead(n.id); setActiveTab("homework"); }} className="text-[10px] cursor-pointer bg-secondary/20 text-secondary-foreground hover:bg-secondary/30 gap-1">
+                                  <BookOpen className="w-2.5 h-2.5" /> Open Homework
+                                </Badge>
+                              )}
+                              {relExam && (
+                                <Badge onClick={(e) => { e.stopPropagation(); markNoticeRead(n.id); setActiveTab("timetable"); }} className="text-[10px] cursor-pointer bg-info/20 text-info-foreground hover:bg-info/30 gap-1">
+                                  <ClipboardList className="w-2.5 h-2.5" /> Open Exam
+                                </Badge>
+                              )}
+                              {!isRead && <Badge className="text-[10px] bg-destructive text-destructive-foreground">NEW</Badge>}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {/* ===== HOMEWORK ===== */}
             <TabsContent value="homework" className="space-y-3 mt-5">
               {childHomework.length === 0 ? (
@@ -451,6 +654,13 @@ export default function ParentDashboard() {
                 </div>
               ) : childHomework.map((hw, i) => {
                 const done = doneHw.has(hw.id);
+                const dueDate = hw.due_date ? new Date(hw.due_date) : null;
+                const daysLeft = dueDate ? Math.ceil((dueDate.getTime() - Date.now()) / 86400000) : null;
+                const dueBadge = daysLeft === null ? null
+                  : daysLeft < 0 ? { label: `Overdue ${Math.abs(daysLeft)}d`, cls: "bg-destructive text-destructive-foreground" }
+                  : daysLeft === 0 ? { label: "Due today", cls: "bg-destructive text-destructive-foreground" }
+                  : daysLeft <= 2 ? { label: `${daysLeft}d left`, cls: "bg-secondary text-secondary-foreground" }
+                  : { label: `${daysLeft}d left`, cls: "bg-muted text-muted-foreground" };
                 return (
                   <Card key={hw.id} className={`animate-fade-in transition-all ${done ? "opacity-60 bg-muted/40" : ""}`} style={{ animationDelay: `${i * 40}ms` }}>
                     <CardContent className="pt-4 pb-4">
@@ -459,17 +669,32 @@ export default function ParentDashboard() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2 flex-wrap">
                             <p className={`text-sm font-semibold ${done ? "line-through" : ""}`}>{hw.title}</p>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <Badge variant="outline" className="text-[10px]">{hw.subject}</Badge>
+                              {!done && dueBadge && (
+                                <Badge className={`text-[10px] gap-1 ${dueBadge.cls}`}><AlarmClock className="w-2.5 h-2.5" /> {dueBadge.label}</Badge>
+                              )}
                               {done && <Badge className="text-[10px] bg-success text-success-foreground">Done</Badge>}
                             </div>
                           </div>
                           {hw.description && <p className="text-xs text-muted-foreground mt-1.5 whitespace-pre-wrap">{hw.description}</p>}
-                          {hw.due_date && (
-                            <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1">
-                              <CalendarIcon className="w-3 h-3" /> Due {new Date(hw.due_date).toLocaleDateString("en-IN")}
-                            </p>
-                          )}
+                          <div className="flex flex-wrap items-center gap-3 mt-2">
+                            {hw.due_date && (
+                              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                <CalendarIcon className="w-3 h-3" /> Due {new Date(hw.due_date).toLocaleDateString("en-IN")}
+                              </p>
+                            )}
+                            {hw.attachment_url && (
+                              <a
+                                href={hw.attachment_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[11px] text-primary hover:underline flex items-center gap-1 font-medium"
+                              >
+                                <Paperclip className="w-3 h-3" /> View attachment
+                              </a>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </CardContent>
@@ -477,6 +702,7 @@ export default function ParentDashboard() {
                 );
               })}
             </TabsContent>
+
 
             {/* ===== TIMETABLE ===== */}
             <TabsContent value="timetable" className="space-y-3 mt-5">
@@ -606,14 +832,24 @@ export default function ParentDashboard() {
               </div>
 
               <Card className="animate-fade-in">
-                <CardHeader>
+                <CardHeader className="flex-row items-center justify-between pb-2 space-y-0">
                   <CardTitle className="text-sm font-display flex items-center gap-2">
                     <CalendarIcon className="w-4 h-4 text-primary" /> Attendance Calendar
                   </CardTitle>
+                  <Button size="sm" variant="outline" onClick={downloadAttendancePDF} className="gap-1.5 h-8 text-xs">
+                    <Download className="w-3.5 h-3.5" /> PDF
+                  </Button>
                 </CardHeader>
-                <CardContent className="flex justify-center">
+                <CardContent className="flex flex-col items-center">
+                  <div className="flex items-center justify-between w-full max-w-sm mb-2 text-xs">
+                    <span className="text-muted-foreground">Viewing</span>
+                    <span className="font-display font-bold">{calMonth.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</span>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCalMonth(new Date())}>Today</Button>
+                  </div>
                   <Calendar
                     mode="single"
+                    month={calMonth}
+                    onMonthChange={setCalMonth}
                     modifiers={{ present: presentDates, absent: absentDates }}
                     modifiersClassNames={{
                       present: "bg-success/20 text-success font-bold rounded-full",
@@ -623,11 +859,36 @@ export default function ParentDashboard() {
                   />
                 </CardContent>
                 <div className="px-6 pb-4 flex gap-4 text-xs justify-center">
-                  <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-success/30" /> Present</span>
-                  <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-destructive/30" /> Absent</span>
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex items-center gap-1.5 cursor-help">
+                          <span className="w-3 h-3 rounded-full bg-success/40 ring-1 ring-success/60" /> Present
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Days your child was marked present</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex items-center gap-1.5 cursor-help">
+                          <span className="w-3 h-3 rounded-full bg-destructive/40 ring-1 ring-destructive/60" /> Absent
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Days your child was marked absent</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex items-center gap-1.5 cursor-help text-muted-foreground">
+                          <span className="w-3 h-3 rounded-full border border-border" /> No record
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Holiday or attendance not yet marked</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </Card>
             </TabsContent>
+
 
             {/* ===== FEES ===== */}
             <TabsContent value="fees" className="space-y-4 mt-5">
