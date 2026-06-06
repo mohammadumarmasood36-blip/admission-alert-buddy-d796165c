@@ -8,16 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   LogOut, GraduationCap, CreditCard, BookOpen, BarChart3, ClipboardList,
   Bell, Calendar as CalendarIcon, School, User, BellRing, Download,
   CheckCircle2, Clock, Sparkles, TrendingUp, FileText, ChevronRight,
+  Home, Inbox, Mail, MailOpen, Paperclip, AlarmClock, Phone, Users, Settings,
 } from "lucide-react";
 import ChangePassword from "@/components/portal/ChangePassword";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { subscribeToPush, isPushSubscribed } from "@/lib/pushNotifications";
 import { exportReportCardPDF } from "@/lib/pdfExport";
+import jsPDF from "jspdf";
 
 const HW_DONE_KEY = "ups_homework_done";
 
