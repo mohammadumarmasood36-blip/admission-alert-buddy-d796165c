@@ -47,6 +47,7 @@ export default function TeacherDashboard() {
   const [hwSubject, setHwSubject] = useState("");
   const [hwClasses, setHwClasses] = useState<string[]>([]);
   const [hwDue, setHwDue] = useState("");
+  const [hwAttach, setHwAttach] = useState("");
   const [homeworkList, setHomeworkList] = useState<any[]>([]);
   // Notices
   const [noticeOpen, setNoticeOpen] = useState(false);
@@ -220,14 +221,29 @@ export default function TeacherDashboard() {
       const [cls, sec] = cs.split("|");
       return {
         title: hwTitle.trim(), description: hwDesc, subject: hwSubject,
-        class_name: cls, section_name: sec, due_date: hwDue || null, assigned_by: user?.id,
+        class_name: cls, section_name: sec, due_date: hwDue || null,
+        attachment_url: hwAttach.trim() || null, assigned_by: user?.id,
       };
     });
     const { data, error } = await supabase.from("homework").insert(insertRows as any).select();
     if (error) { toast.error("Failed"); return; }
     if (data) setHomeworkList((prev) => [...data, ...prev]);
-    toast.success("Homework assigned!");
-    setHwOpen(false); setHwTitle(""); setHwDesc(""); setHwDue(""); setHwClasses([]);
+    // Send push alert to parents of every student in the targeted class/section
+    const targetStudentIds = students
+      .filter((s) => hwClasses.includes(`${s.className}|${s.section}`))
+      .map((s) => s.id);
+    if (targetStudentIds.length > 0) {
+      supabase.functions.invoke("send-push", {
+        body: {
+          student_ids: targetStudentIds,
+          title: `📚 New Homework: ${hwSubject}`,
+          body: `${hwTitle.trim()}${hwDue ? ` • Due ${new Date(hwDue).toLocaleDateString("en-IN")}` : ""}`,
+          url: "/portal",
+        },
+      }).catch(() => {});
+    }
+    toast.success("Homework assigned & parents notified!");
+    setHwOpen(false); setHwTitle(""); setHwDesc(""); setHwDue(""); setHwClasses([]); setHwAttach("");
   };
 
   const handleDeleteHomework = async (id: string) => {
@@ -723,6 +739,7 @@ export default function TeacherDashboard() {
                 </div>
                 <div><Label>Due Date</Label><Input type="date" value={hwDue} onChange={(e) => setHwDue(e.target.value)} className="mt-1" /></div>
               </div>
+              <div><Label>Attachment URL (optional)</Label><Input value={hwAttach} onChange={(e) => setHwAttach(e.target.value)} placeholder="https://… PDF, image, or reference link" className="mt-1" /></div>
               <div>
                 <Label>Assign to Classes & Sections (click to toggle)</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
