@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS student_notices_student_notice_unique ON public.student_notices(student_id, notice_id);
