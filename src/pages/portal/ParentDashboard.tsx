@@ -67,14 +67,15 @@ export default function ParentDashboard() {
       const admNos = myChildren.map((c) => c.admissionNumber);
       if (childIds.length === 0) return;
 
-      const [attRes, examRes, examsRes, schedRes, noticeRes, hwRes, subjRes] = await Promise.all([
+      const [attRes, examRes, examsRes, schedRes, noticeRes, hwRes, subjRes, readRes] = await Promise.all([
         supabase.from("attendance").select("*").in("student_id", childIds).eq("session", session),
         supabase.from("exam_results").select("*").in("admission_no", admNos),
         supabase.from("examinations").select("*"),
         supabase.from("exam_schedules").select("*"),
-        supabase.from("notices").select("*").order("created_at", { ascending: false }).limit(20),
+        supabase.from("notices").select("*").order("created_at", { ascending: false }).limit(50),
         supabase.from("homework").select("*").order("created_at", { ascending: false }).limit(50),
         supabase.from("student_subjects").select("student_id, subject_name").in("student_id", childIds),
+        supabase.from("student_notices").select("notice_id, read").in("student_id", childIds).eq("read", true),
       ]);
       if (attRes.data) setAttendance(attRes.data);
       if (examRes.data) setExamResults(examRes.data);
@@ -82,6 +83,7 @@ export default function ParentDashboard() {
       if (schedRes.data) setExamSchedules(schedRes.data);
       if (noticeRes.data) setNotices(noticeRes.data);
       if (hwRes.data) setHomework(hwRes.data);
+      if (readRes.data) setReadNoticeIds(new Set(readRes.data.map((r: any) => r.notice_id)));
       if (subjRes.data) {
         const map: Record<string, string[]> = {};
         subjRes.data.forEach((r: any) => {
