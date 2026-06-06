@@ -45,6 +45,11 @@ export default function ParentDashboard() {
   const [homework, setHomework] = useState<any[]>([]);
   const [studentSubjects, setStudentSubjects] = useState<Record<string, string[]>>({});
   const [doneHw, setDoneHw] = useState<Set<string>>(() => getDoneHomework());
+  const [readNoticeIds, setReadNoticeIds] = useState<Set<string>>(new Set());
+  const [noticeFilterFrom, setNoticeFilterFrom] = useState("");
+  const [noticeFilterTo, setNoticeFilterTo] = useState("");
+  const [calMonth, setCalMonth] = useState<Date>(new Date());
+  const [activeTab, setActiveTab] = useState("home");
 
   const myChildren = useMemo(() => {
     const child = students.find((s) => s.id === user?.id);
