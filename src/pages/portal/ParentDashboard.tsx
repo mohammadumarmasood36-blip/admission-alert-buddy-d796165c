@@ -463,6 +463,49 @@ export default function ParentDashboard() {
 
             {/* ===== HOME ===== */}
             <TabsContent value="home" className="space-y-4 mt-5">
+              {/* Profile Widget */}
+              <Card className="animate-fade-in overflow-hidden border-secondary/30 bg-gradient-to-br from-primary/5 via-card to-secondary/5">
+                <CardContent className="pt-5 pb-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <User className="w-5 h-5 text-primary" />
+                    <h3 className="font-display font-bold text-sm">Student Profile</h3>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="p-2.5 rounded-lg bg-card/70 border border-border/40">
+                      <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Class</p>
+                      <p className="font-bold text-sm mt-0.5">{child.className}-{child.section}</p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-card/70 border border-border/40">
+                      <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Adm. No</p>
+                      <p className="font-mono font-bold text-sm mt-0.5 truncate">{child.admissionNumber}</p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-card/70 border border-border/40">
+                      <p className="text-[10px] uppercase text-muted-foreground tracking-wider flex items-center gap-1"><Phone className="w-2.5 h-2.5" /> Father</p>
+                      <p className="font-medium text-xs mt-0.5 truncate">{child.fatherMobile || "—"}</p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-card/70 border border-border/40">
+                      <p className="text-[10px] uppercase text-muted-foreground tracking-wider flex items-center gap-1"><Phone className="w-2.5 h-2.5" /> Mother</p>
+                      <p className="font-medium text-xs mt-0.5 truncate">{child.motherMobile || "—"}</p>
+                    </div>
+                  </div>
+                  {/* Quick actions */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("timetable")}>
+                      <CalendarIcon className="w-3.5 h-3.5 text-primary" /> Timetable
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("homework")}>
+                      <BookOpen className="w-3.5 h-3.5 text-secondary" /> Homework
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("attendance")}>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-success" /> Attendance
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("results")}>
+                      <BarChart3 className="w-3.5 h-3.5 text-info" /> Results
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               {pendingHomework.length > 0 && (
                 <Card className="border-secondary/30 bg-gradient-to-br from-secondary/5 to-transparent animate-fade-in">
                   <CardHeader className="pb-2">
