@@ -222,6 +222,77 @@ export default function ParentDashboard() {
     );
   };
 
+  // ===== Notices inbox helpers =====
+  const filteredNotices = useMemo(() => {
+    return childNotices.filter((n) => {
+      const d = new Date(n.created_at);
+      if (noticeFilterFrom && d < new Date(noticeFilterFrom)) return false;
+      if (noticeFilterTo) {
+        const to = new Date(noticeFilterTo); to.setHours(23, 59, 59);
+        if (d > to) return false;
+      }
+      return true;
+    });
+  }, [childNotices, noticeFilterFrom, noticeFilterTo]);
+
+  const unreadCount = childNotices.filter((n) => !readNoticeIds.has(n.id)).length;
+
+  const markNoticeRead = async (noticeId: string) => {
+    if (readNoticeIds.has(noticeId) || !child) return;
+    const next = new Set(readNoticeIds); next.add(noticeId);
+    setReadNoticeIds(next);
+    await supabase.from("student_notices").upsert(
+      { student_id: child.id, notice_id: noticeId, read: true } as any,
+      { onConflict: "student_id,notice_id" } as any
+    );
+  };
+
+  // Detect linked entity in notice content (homework/exam keywords)
+  const findRelatedHomework = (n: any) => {
+    const text = `${n.title} ${n.content || ""}`.toLowerCase();
+    return childHomework.find((h) => text.includes(h.title.toLowerCase()) || text.includes((h.subject || "").toLowerCase()));
+  };
+  const findRelatedExam = (n: any) => {
+    const text = `${n.title} ${n.content || ""}`.toLowerCase();
+    return examinations.find((e) => text.includes((e.name || "").toLowerCase()));
+  };
+
+  // ===== Attendance PDF for selected month =====
+  const downloadAttendancePDF = () => {
+    if (!child) return;
+    const month = calMonth.getMonth();
+    const year = calMonth.getFullYear();
+    const monthRecords = childAttendance
+      .filter((a) => { const d = new Date(a.date); return d.getMonth() === month && d.getFullYear() === year; })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const doc = new jsPDF();
+    const monthName = calMonth.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+    doc.setFontSize(16); doc.text("Attendance Report", 105, 15, { align: "center" });
+    doc.setFontSize(12); doc.text(`${child.name} • Class ${child.className}-${child.section}`, 105, 23, { align: "center" });
+    doc.text(`Admission No: ${child.admissionNumber}`, 105, 30, { align: "center" });
+    doc.setFontSize(11); doc.text(`Month: ${monthName}`, 14, 42);
+    const present = monthRecords.filter((r) => r.status === "present").length;
+    const absent = monthRecords.length - present;
+    const pct = monthRecords.length > 0 ? Math.round((present / monthRecords.length) * 100) : 0;
+    doc.text(`Present: ${present}   Absent: ${absent}   Attendance: ${pct}%`, 14, 50);
+    doc.setFontSize(10);
+    let y = 62;
+    doc.setFillColor(30, 58, 95); doc.rect(14, y - 5, 182, 8, "F");
+    doc.setTextColor(255, 255, 255); doc.text("Date", 18, y); doc.text("Day", 70, y); doc.text("Status", 130, y);
+    doc.setTextColor(0, 0, 0); y += 6;
+    monthRecords.forEach((r) => {
+      const d = new Date(r.date);
+      if (y > 280) { doc.addPage(); y = 20; }
+      doc.text(d.toLocaleDateString("en-IN"), 18, y);
+      doc.text(d.toLocaleDateString("en-IN", { weekday: "long" }), 70, y);
+      doc.text((r.status || "").toUpperCase(), 130, y);
+      y += 6;
+    });
+    if (monthRecords.length === 0) { doc.text("No attendance recorded for this month.", 14, y); }
+    doc.save(`Attendance_${child.name}_${monthName.replace(" ", "_")}.pdf`);
+    toast.success(`Downloaded ${monthName} attendance`);
+  };
+
   const handleLogout = () => { logout(); navigate("/portal"); };
 
   if (myChildren.length === 0) {
