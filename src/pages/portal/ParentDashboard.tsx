@@ -445,16 +445,21 @@ export default function ParentDashboard() {
 
       {child && (
         <main className="max-w-5xl mx-auto px-4 sm:px-6 mt-4">
-          <Tabs defaultValue="home">
-            <TabsList className="w-full grid grid-cols-3 sm:grid-cols-7 h-auto bg-muted/50 p-1">
-              <TabsTrigger value="home" className="text-xs py-2">Home</TabsTrigger>
-              <TabsTrigger value="homework" className="text-xs py-2">Homework</TabsTrigger>
-              <TabsTrigger value="timetable" className="text-xs py-2">Timetable</TabsTrigger>
-              <TabsTrigger value="results" className="text-xs py-2">Results</TabsTrigger>
-              <TabsTrigger value="attendance" className="text-xs py-2">Attendance</TabsTrigger>
-              <TabsTrigger value="fees" className="text-xs py-2">Fees</TabsTrigger>
-              <TabsTrigger value="more" className="text-xs py-2">More</TabsTrigger>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="w-full grid grid-cols-4 sm:grid-cols-8 h-auto bg-muted/50 p-1 gap-0.5">
+              <TabsTrigger value="home" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><Home className="w-3.5 h-3.5" /> Home</TabsTrigger>
+              <TabsTrigger value="inbox" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5 relative">
+                <Inbox className="w-3.5 h-3.5" /> Inbox
+                {unreadCount > 0 && <span className="absolute top-0.5 right-0.5 sm:static bg-destructive text-destructive-foreground rounded-full text-[9px] px-1.5 leading-4 min-w-[16px] text-center font-bold">{unreadCount}</span>}
+              </TabsTrigger>
+              <TabsTrigger value="homework" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><BookOpen className="w-3.5 h-3.5" /> HW</TabsTrigger>
+              <TabsTrigger value="timetable" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><CalendarIcon className="w-3.5 h-3.5" /> Exams</TabsTrigger>
+              <TabsTrigger value="results" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Results</TabsTrigger>
+              <TabsTrigger value="attendance" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Att.</TabsTrigger>
+              <TabsTrigger value="fees" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><CreditCard className="w-3.5 h-3.5" /> Fees</TabsTrigger>
+              <TabsTrigger value="more" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><Settings className="w-3.5 h-3.5" /> More</TabsTrigger>
             </TabsList>
+
 
             {/* ===== HOME ===== */}
             <TabsContent value="home" className="space-y-4 mt-5">
