@@ -832,14 +832,24 @@ export default function ParentDashboard() {
               </div>
 
               <Card className="animate-fade-in">
-                <CardHeader>
+                <CardHeader className="flex-row items-center justify-between pb-2 space-y-0">
                   <CardTitle className="text-sm font-display flex items-center gap-2">
                     <CalendarIcon className="w-4 h-4 text-primary" /> Attendance Calendar
                   </CardTitle>
+                  <Button size="sm" variant="outline" onClick={downloadAttendancePDF} className="gap-1.5 h-8 text-xs">
+                    <Download className="w-3.5 h-3.5" /> PDF
+                  </Button>
                 </CardHeader>
-                <CardContent className="flex justify-center">
+                <CardContent className="flex flex-col items-center">
+                  <div className="flex items-center justify-between w-full max-w-sm mb-2 text-xs">
+                    <span className="text-muted-foreground">Viewing</span>
+                    <span className="font-display font-bold">{calMonth.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</span>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCalMonth(new Date())}>Today</Button>
+                  </div>
                   <Calendar
                     mode="single"
+                    month={calMonth}
+                    onMonthChange={setCalMonth}
                     modifiers={{ present: presentDates, absent: absentDates }}
                     modifiersClassNames={{
                       present: "bg-success/20 text-success font-bold rounded-full",
@@ -849,11 +859,36 @@ export default function ParentDashboard() {
                   />
                 </CardContent>
                 <div className="px-6 pb-4 flex gap-4 text-xs justify-center">
-                  <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-success/30" /> Present</span>
-                  <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-destructive/30" /> Absent</span>
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex items-center gap-1.5 cursor-help">
+                          <span className="w-3 h-3 rounded-full bg-success/40 ring-1 ring-success/60" /> Present
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Days your child was marked present</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex items-center gap-1.5 cursor-help">
+                          <span className="w-3 h-3 rounded-full bg-destructive/40 ring-1 ring-destructive/60" /> Absent
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Days your child was marked absent</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex items-center gap-1.5 cursor-help text-muted-foreground">
+                          <span className="w-3 h-3 rounded-full border border-border" /> No record
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Holiday or attendance not yet marked</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </Card>
             </TabsContent>
+
 
             {/* ===== FEES ===== */}
             <TabsContent value="fees" className="space-y-4 mt-5">
