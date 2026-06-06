@@ -572,6 +572,79 @@ export default function ParentDashboard() {
               )}
             </TabsContent>
 
+            {/* ===== INBOX ===== */}
+            <TabsContent value="inbox" className="space-y-3 mt-5">
+              <Card className="animate-fade-in">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-display flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2"><Inbox className="w-4 h-4 text-primary" /> Notices Inbox</span>
+                    <Badge variant="outline" className="text-[10px]">{unreadCount} unread</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex flex-wrap gap-2 items-end">
+                    <div className="flex-1 min-w-[120px]">
+                      <label className="text-[10px] uppercase text-muted-foreground tracking-wider">From</label>
+                      <Input type="date" value={noticeFilterFrom} onChange={(e) => setNoticeFilterFrom(e.target.value)} className="h-8 text-xs mt-0.5" />
+                    </div>
+                    <div className="flex-1 min-w-[120px]">
+                      <label className="text-[10px] uppercase text-muted-foreground tracking-wider">To</label>
+                      <Input type="date" value={noticeFilterTo} onChange={(e) => setNoticeFilterTo(e.target.value)} className="h-8 text-xs mt-0.5" />
+                    </div>
+                    {(noticeFilterFrom || noticeFilterTo) && (
+                      <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setNoticeFilterFrom(""); setNoticeFilterTo(""); }}>Clear</Button>
+                    )}
+                  </div>
+
+                  {filteredNotices.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground text-sm">
+                      <Inbox className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                      No notices match the filters.
+                    </div>
+                  ) : filteredNotices.map((n) => {
+                    const isRead = readNoticeIds.has(n.id);
+                    const relHw = findRelatedHomework(n);
+                    const relExam = findRelatedExam(n);
+                    return (
+                      <button
+                        key={n.id}
+                        onClick={() => markNoticeRead(n.id)}
+                        className={`w-full text-left p-3 rounded-xl border transition-all hover:shadow-md ${
+                          isRead ? "bg-muted/30 border-border" : "bg-secondary/5 border-secondary/40 shadow-sm"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isRead ? "bg-muted text-muted-foreground" : "bg-secondary text-secondary-foreground"}`}>
+                            {isRead ? <MailOpen className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className={`text-sm truncate ${isRead ? "font-medium text-muted-foreground" : "font-bold"}`}>{n.title}</p>
+                              <span className="text-[10px] text-muted-foreground shrink-0">{new Date(n.created_at).toLocaleDateString("en-IN")}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2 whitespace-pre-wrap">{n.content}</p>
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {relHw && (
+                                <Badge onClick={(e) => { e.stopPropagation(); markNoticeRead(n.id); setActiveTab("homework"); }} className="text-[10px] cursor-pointer bg-secondary/20 text-secondary-foreground hover:bg-secondary/30 gap-1">
+                                  <BookOpen className="w-2.5 h-2.5" /> Open Homework
+                                </Badge>
+                              )}
+                              {relExam && (
+                                <Badge onClick={(e) => { e.stopPropagation(); markNoticeRead(n.id); setActiveTab("timetable"); }} className="text-[10px] cursor-pointer bg-info/20 text-info-foreground hover:bg-info/30 gap-1">
+                                  <ClipboardList className="w-2.5 h-2.5" /> Open Exam
+                                </Badge>
+                              )}
+                              {!isRead && <Badge className="text-[10px] bg-destructive text-destructive-foreground">NEW</Badge>}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {/* ===== HOMEWORK ===== */}
             <TabsContent value="homework" className="space-y-3 mt-5">
               {childHomework.length === 0 ? (
@@ -581,6 +654,13 @@ export default function ParentDashboard() {
                 </div>
               ) : childHomework.map((hw, i) => {
                 const done = doneHw.has(hw.id);
+                const dueDate = hw.due_date ? new Date(hw.due_date) : null;
+                const daysLeft = dueDate ? Math.ceil((dueDate.getTime() - Date.now()) / 86400000) : null;
+                const dueBadge = daysLeft === null ? null
+                  : daysLeft < 0 ? { label: `Overdue ${Math.abs(daysLeft)}d`, cls: "bg-destructive text-destructive-foreground" }
+                  : daysLeft === 0 ? { label: "Due today", cls: "bg-destructive text-destructive-foreground" }
+                  : daysLeft <= 2 ? { label: `${daysLeft}d left`, cls: "bg-secondary text-secondary-foreground" }
+                  : { label: `${daysLeft}d left`, cls: "bg-muted text-muted-foreground" };
                 return (
                   <Card key={hw.id} className={`animate-fade-in transition-all ${done ? "opacity-60 bg-muted/40" : ""}`} style={{ animationDelay: `${i * 40}ms` }}>
                     <CardContent className="pt-4 pb-4">
@@ -589,17 +669,32 @@ export default function ParentDashboard() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2 flex-wrap">
                             <p className={`text-sm font-semibold ${done ? "line-through" : ""}`}>{hw.title}</p>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <Badge variant="outline" className="text-[10px]">{hw.subject}</Badge>
+                              {!done && dueBadge && (
+                                <Badge className={`text-[10px] gap-1 ${dueBadge.cls}`}><AlarmClock className="w-2.5 h-2.5" /> {dueBadge.label}</Badge>
+                              )}
                               {done && <Badge className="text-[10px] bg-success text-success-foreground">Done</Badge>}
                             </div>
                           </div>
                           {hw.description && <p className="text-xs text-muted-foreground mt-1.5 whitespace-pre-wrap">{hw.description}</p>}
-                          {hw.due_date && (
-                            <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1">
-                              <CalendarIcon className="w-3 h-3" /> Due {new Date(hw.due_date).toLocaleDateString("en-IN")}
-                            </p>
-                          )}
+                          <div className="flex flex-wrap items-center gap-3 mt-2">
+                            {hw.due_date && (
+                              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                <CalendarIcon className="w-3 h-3" /> Due {new Date(hw.due_date).toLocaleDateString("en-IN")}
+                              </p>
+                            )}
+                            {hw.attachment_url && (
+                              <a
+                                href={hw.attachment_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[11px] text-primary hover:underline flex items-center gap-1 font-medium"
+                              >
+                                <Paperclip className="w-3 h-3" /> View attachment
+                              </a>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </CardContent>
@@ -607,6 +702,7 @@ export default function ParentDashboard() {
                 );
               })}
             </TabsContent>
+
 
             {/* ===== TIMETABLE ===== */}
             <TabsContent value="timetable" className="space-y-3 mt-5">
