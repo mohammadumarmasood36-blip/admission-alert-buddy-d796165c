@@ -48,6 +48,7 @@ export default function ParentDashboard() {
   const [readNoticeIds, setReadNoticeIds] = useState<Set<string>>(new Set());
   const [noticeFilterFrom, setNoticeFilterFrom] = useState("");
   const [noticeFilterTo, setNoticeFilterTo] = useState("");
+  const [unreadOnly, setUnreadOnly] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(new Date());
   const [activeTab, setActiveTab] = useState("home");
 
@@ -225,6 +226,7 @@ export default function ParentDashboard() {
   // ===== Notices inbox helpers =====
   const filteredNotices = useMemo(() => {
     return childNotices.filter((n) => {
+      if (unreadOnly && readNoticeIds.has(n.id)) return false;
       const d = new Date(n.created_at);
       if (noticeFilterFrom && d < new Date(noticeFilterFrom)) return false;
       if (noticeFilterTo) {
@@ -233,7 +235,7 @@ export default function ParentDashboard() {
       }
       return true;
     });
-  }, [childNotices, noticeFilterFrom, noticeFilterTo]);
+  }, [childNotices, noticeFilterFrom, noticeFilterTo, unreadOnly, readNoticeIds]);
 
   const unreadCount = childNotices.filter((n) => !readNoticeIds.has(n.id)).length;
 
@@ -245,6 +247,18 @@ export default function ParentDashboard() {
       { student_id: child.id, notice_id: noticeId, read: true } as any,
       { onConflict: "student_id,notice_id" } as any
     );
+  };
+
+  const markAllNoticesRead = async () => {
+    if (!child) return;
+    const unread = childNotices.filter((n) => !readNoticeIds.has(n.id));
+    if (unread.length === 0) { toast.info("All notices already read"); return; }
+    const next = new Set(readNoticeIds);
+    unread.forEach((n) => next.add(n.id));
+    setReadNoticeIds(next);
+    const rows = unread.map((n) => ({ student_id: child.id, notice_id: n.id, read: true }));
+    await supabase.from("student_notices").upsert(rows as any, { onConflict: "student_id,notice_id" } as any);
+    toast.success(`Marked ${unread.length} notice${unread.length > 1 ? "s" : ""} as read`);
   };
 
   // Detect linked entity in notice content (homework/exam keywords)
@@ -415,15 +429,25 @@ export default function ParentDashboard() {
 
               {/* Hero stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4">
-                {heroStats.map((s, i) => (
-                  <div key={s.label} className="bg-muted/40 rounded-xl p-3 border border-border/40 animate-fade-in" style={{ animationDelay: `${i * 60}ms` }}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <s.icon className={`w-4 h-4 ${s.accent}`} />
+                {heroStats.map((s, i) => {
+                  const tints = [
+                    "from-emerald-500/15 to-emerald-500/5 border-emerald-500/30",
+                    "from-amber-500/15 to-amber-500/5 border-amber-500/30",
+                    "from-sky-500/15 to-sky-500/5 border-sky-500/30",
+                    "from-rose-500/15 to-rose-500/5 border-rose-500/30",
+                  ];
+                  return (
+                    <div key={s.label} className={`bg-gradient-to-br ${tints[i % 4]} rounded-xl p-3 border animate-fade-in shadow-sm hover:shadow-md transition-shadow`} style={{ animationDelay: `${i * 60}ms` }}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`w-9 h-9 rounded-xl bg-card/80 flex items-center justify-center shadow-sm`}>
+                          <s.icon className={`w-5 h-5 ${s.accent}`} />
+                        </div>
+                      </div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{s.label}</p>
+                      <p className="text-base sm:text-lg font-bold font-display mt-0.5">{s.value}</p>
                     </div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{s.label}</p>
-                    <p className="text-base sm:text-lg font-bold font-display mt-0.5">{s.value}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {studentSubjects[child.id]?.length > 0 && (
@@ -447,17 +471,17 @@ export default function ParentDashboard() {
         <main className="max-w-5xl mx-auto px-4 sm:px-6 mt-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full grid grid-cols-4 sm:grid-cols-8 h-auto bg-muted/50 p-1 gap-0.5">
-              <TabsTrigger value="home" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><Home className="w-3.5 h-3.5" /> Home</TabsTrigger>
-              <TabsTrigger value="inbox" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5 relative">
-                <Inbox className="w-3.5 h-3.5" /> Inbox
-                {unreadCount > 0 && <span className="absolute top-0.5 right-0.5 sm:static bg-destructive text-destructive-foreground rounded-full text-[9px] px-1.5 leading-4 min-w-[16px] text-center font-bold">{unreadCount}</span>}
+              <TabsTrigger value="home" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground"><Home className="w-5 h-5 sm:w-4 sm:h-4" /> Home</TabsTrigger>
+              <TabsTrigger value="inbox" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 relative data-[state=active]:bg-gradient-to-br data-[state=active]:from-secondary data-[state=active]:to-secondary/70 data-[state=active]:text-secondary-foreground">
+                <Inbox className="w-5 h-5 sm:w-4 sm:h-4" /> Inbox
+                {unreadCount > 0 && <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 bg-destructive text-destructive-foreground rounded-full text-[9px] px-1.5 leading-4 min-w-[16px] text-center font-bold animate-pulse">{unreadCount}</span>}
               </TabsTrigger>
-              <TabsTrigger value="homework" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><BookOpen className="w-3.5 h-3.5" /> HW</TabsTrigger>
-              <TabsTrigger value="timetable" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><CalendarIcon className="w-3.5 h-3.5" /> Exams</TabsTrigger>
-              <TabsTrigger value="results" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Results</TabsTrigger>
-              <TabsTrigger value="attendance" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Att.</TabsTrigger>
-              <TabsTrigger value="fees" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><CreditCard className="w-3.5 h-3.5" /> Fees</TabsTrigger>
-              <TabsTrigger value="more" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><Settings className="w-3.5 h-3.5" /> More</TabsTrigger>
+              <TabsTrigger value="homework" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-info data-[state=active]:to-info/70 data-[state=active]:text-info-foreground"><BookOpen className="w-5 h-5 sm:w-4 sm:h-4" /> HW</TabsTrigger>
+              <TabsTrigger value="timetable" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-purple-600 data-[state=active]:to-purple-500 data-[state=active]:text-white"><CalendarIcon className="w-5 h-5 sm:w-4 sm:h-4" /> Exams</TabsTrigger>
+              <TabsTrigger value="results" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-500 data-[state=active]:text-white"><BarChart3 className="w-5 h-5 sm:w-4 sm:h-4" /> Results</TabsTrigger>
+              <TabsTrigger value="attendance" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-success data-[state=active]:to-success/70 data-[state=active]:text-success-foreground"><CheckCircle2 className="w-5 h-5 sm:w-4 sm:h-4" /> Att.</TabsTrigger>
+              <TabsTrigger value="fees" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white"><CreditCard className="w-5 h-5 sm:w-4 sm:h-4" /> Fees</TabsTrigger>
+              <TabsTrigger value="more" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-slate-700 data-[state=active]:to-slate-600 data-[state=active]:text-white"><Settings className="w-5 h-5 sm:w-4 sm:h-4" /> More</TabsTrigger>
             </TabsList>
 
 
@@ -490,17 +514,17 @@ export default function ParentDashboard() {
                   </div>
                   {/* Quick actions */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("timetable")}>
-                      <CalendarIcon className="w-3.5 h-3.5 text-primary" /> Timetable
+                    <Button size="sm" variant="outline" className="gap-2 text-xs h-auto py-2.5 hover:bg-primary/5 hover:border-primary/40" onClick={() => setActiveTab("timetable")}>
+                      <CalendarIcon className="w-5 h-5 text-purple-600" /> Timetable
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("homework")}>
-                      <BookOpen className="w-3.5 h-3.5 text-secondary" /> Homework
+                    <Button size="sm" variant="outline" className="gap-2 text-xs h-auto py-2.5 hover:bg-secondary/5 hover:border-secondary/40" onClick={() => setActiveTab("homework")}>
+                      <BookOpen className="w-5 h-5 text-sky-600" /> Homework
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("attendance")}>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-success" /> Attendance
+                    <Button size="sm" variant="outline" className="gap-2 text-xs h-auto py-2.5 hover:bg-success/5 hover:border-success/40" onClick={() => setActiveTab("attendance")}>
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" /> Attendance
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("results")}>
-                      <BarChart3 className="w-3.5 h-3.5 text-info" /> Results
+                    <Button size="sm" variant="outline" className="gap-2 text-xs h-auto py-2.5 hover:bg-info/5 hover:border-info/40" onClick={() => setActiveTab("results")}>
+                      <BarChart3 className="w-5 h-5 text-amber-600" /> Results
                     </Button>
                   </div>
                 </CardContent>
@@ -576,9 +600,28 @@ export default function ParentDashboard() {
             <TabsContent value="inbox" className="space-y-3 mt-5">
               <Card className="animate-fade-in">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-display flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-2"><Inbox className="w-4 h-4 text-primary" /> Notices Inbox</span>
-                    <Badge variant="outline" className="text-[10px]">{unreadCount} unread</Badge>
+                  <CardTitle className="text-sm font-display flex items-center justify-between gap-2 flex-wrap">
+                    <span className="flex items-center gap-2"><Inbox className="w-5 h-5 text-primary" /> Notices Inbox</span>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">{unreadCount} unread</Badge>
+                      <Button
+                        size="sm"
+                        variant={unreadOnly ? "default" : "outline"}
+                        className="h-7 text-xs gap-1.5"
+                        onClick={() => setUnreadOnly((v) => !v)}
+                      >
+                        <Mail className="w-3.5 h-3.5" /> {unreadOnly ? "Showing unread" : "Unread only"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1.5"
+                        onClick={markAllNoticesRead}
+                        disabled={unreadCount === 0}
+                      >
+                        <MailOpen className="w-3.5 h-3.5" /> Mark all read
+                      </Button>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -591,15 +634,15 @@ export default function ParentDashboard() {
                       <label className="text-[10px] uppercase text-muted-foreground tracking-wider">To</label>
                       <Input type="date" value={noticeFilterTo} onChange={(e) => setNoticeFilterTo(e.target.value)} className="h-8 text-xs mt-0.5" />
                     </div>
-                    {(noticeFilterFrom || noticeFilterTo) && (
-                      <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setNoticeFilterFrom(""); setNoticeFilterTo(""); }}>Clear</Button>
+                    {(noticeFilterFrom || noticeFilterTo || unreadOnly) && (
+                      <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setNoticeFilterFrom(""); setNoticeFilterTo(""); setUnreadOnly(false); }}>Clear</Button>
                     )}
                   </div>
 
                   {filteredNotices.length === 0 ? (
                     <div className="text-center py-10 text-muted-foreground text-sm">
                       <Inbox className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                      No notices match the filters.
+                      {unreadOnly ? "No unread notices 🎉" : "No notices match the filters."}
                     </div>
                   ) : filteredNotices.map((n) => {
                     const isRead = readNoticeIds.has(n.id);

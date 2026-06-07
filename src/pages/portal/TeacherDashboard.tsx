@@ -241,8 +241,17 @@ export default function TeacherDashboard() {
           url: "/portal",
         },
       }).catch(() => {});
+      supabase.functions.invoke("send-homework-sms", {
+        body: {
+          student_ids: targetStudentIds,
+          title: hwTitle.trim(),
+          subject: hwSubject,
+          due_date: hwDue || null,
+          description: hwDesc || null,
+        },
+      }).catch(() => {});
     }
-    toast.success("Homework assigned & parents notified!");
+    toast.success("Homework assigned • parents notified by push & SMS");
     setHwOpen(false); setHwTitle(""); setHwDesc(""); setHwDue(""); setHwClasses([]); setHwAttach("");
   };
 
