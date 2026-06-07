@@ -429,15 +429,25 @@ export default function ParentDashboard() {
 
               {/* Hero stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4">
-                {heroStats.map((s, i) => (
-                  <div key={s.label} className="bg-muted/40 rounded-xl p-3 border border-border/40 animate-fade-in" style={{ animationDelay: `${i * 60}ms` }}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <s.icon className={`w-4 h-4 ${s.accent}`} />
+                {heroStats.map((s, i) => {
+                  const tints = [
+                    "from-emerald-500/15 to-emerald-500/5 border-emerald-500/30",
+                    "from-amber-500/15 to-amber-500/5 border-amber-500/30",
+                    "from-sky-500/15 to-sky-500/5 border-sky-500/30",
+                    "from-rose-500/15 to-rose-500/5 border-rose-500/30",
+                  ];
+                  return (
+                    <div key={s.label} className={`bg-gradient-to-br ${tints[i % 4]} rounded-xl p-3 border animate-fade-in shadow-sm hover:shadow-md transition-shadow`} style={{ animationDelay: `${i * 60}ms` }}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`w-9 h-9 rounded-xl bg-card/80 flex items-center justify-center shadow-sm`}>
+                          <s.icon className={`w-5 h-5 ${s.accent}`} />
+                        </div>
+                      </div>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{s.label}</p>
+                      <p className="text-base sm:text-lg font-bold font-display mt-0.5">{s.value}</p>
                     </div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{s.label}</p>
-                    <p className="text-base sm:text-lg font-bold font-display mt-0.5">{s.value}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {studentSubjects[child.id]?.length > 0 && (
@@ -504,17 +514,17 @@ export default function ParentDashboard() {
                   </div>
                   {/* Quick actions */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("timetable")}>
-                      <CalendarIcon className="w-3.5 h-3.5 text-primary" /> Timetable
+                    <Button size="sm" variant="outline" className="gap-2 text-xs h-auto py-2.5 hover:bg-primary/5 hover:border-primary/40" onClick={() => setActiveTab("timetable")}>
+                      <CalendarIcon className="w-5 h-5 text-purple-600" /> Timetable
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("homework")}>
-                      <BookOpen className="w-3.5 h-3.5 text-secondary" /> Homework
+                    <Button size="sm" variant="outline" className="gap-2 text-xs h-auto py-2.5 hover:bg-secondary/5 hover:border-secondary/40" onClick={() => setActiveTab("homework")}>
+                      <BookOpen className="w-5 h-5 text-sky-600" /> Homework
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("attendance")}>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-success" /> Attendance
+                    <Button size="sm" variant="outline" className="gap-2 text-xs h-auto py-2.5 hover:bg-success/5 hover:border-success/40" onClick={() => setActiveTab("attendance")}>
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" /> Attendance
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setActiveTab("results")}>
-                      <BarChart3 className="w-3.5 h-3.5 text-info" /> Results
+                    <Button size="sm" variant="outline" className="gap-2 text-xs h-auto py-2.5 hover:bg-info/5 hover:border-info/40" onClick={() => setActiveTab("results")}>
+                      <BarChart3 className="w-5 h-5 text-amber-600" /> Results
                     </Button>
                   </div>
                 </CardContent>
