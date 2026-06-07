@@ -48,6 +48,7 @@ export default function ParentDashboard() {
   const [readNoticeIds, setReadNoticeIds] = useState<Set<string>>(new Set());
   const [noticeFilterFrom, setNoticeFilterFrom] = useState("");
   const [noticeFilterTo, setNoticeFilterTo] = useState("");
+  const [unreadOnly, setUnreadOnly] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(new Date());
   const [activeTab, setActiveTab] = useState("home");
 
@@ -225,6 +226,7 @@ export default function ParentDashboard() {
   // ===== Notices inbox helpers =====
   const filteredNotices = useMemo(() => {
     return childNotices.filter((n) => {
+      if (unreadOnly && readNoticeIds.has(n.id)) return false;
       const d = new Date(n.created_at);
       if (noticeFilterFrom && d < new Date(noticeFilterFrom)) return false;
       if (noticeFilterTo) {
@@ -233,7 +235,7 @@ export default function ParentDashboard() {
       }
       return true;
     });
-  }, [childNotices, noticeFilterFrom, noticeFilterTo]);
+  }, [childNotices, noticeFilterFrom, noticeFilterTo, unreadOnly, readNoticeIds]);
 
   const unreadCount = childNotices.filter((n) => !readNoticeIds.has(n.id)).length;
 
@@ -245,6 +247,18 @@ export default function ParentDashboard() {
       { student_id: child.id, notice_id: noticeId, read: true } as any,
       { onConflict: "student_id,notice_id" } as any
     );
+  };
+
+  const markAllNoticesRead = async () => {
+    if (!child) return;
+    const unread = childNotices.filter((n) => !readNoticeIds.has(n.id));
+    if (unread.length === 0) { toast.info("All notices already read"); return; }
+    const next = new Set(readNoticeIds);
+    unread.forEach((n) => next.add(n.id));
+    setReadNoticeIds(next);
+    const rows = unread.map((n) => ({ student_id: child.id, notice_id: n.id, read: true }));
+    await supabase.from("student_notices").upsert(rows as any, { onConflict: "student_id,notice_id" } as any);
+    toast.success(`Marked ${unread.length} notice${unread.length > 1 ? "s" : ""} as read`);
   };
 
   // Detect linked entity in notice content (homework/exam keywords)
