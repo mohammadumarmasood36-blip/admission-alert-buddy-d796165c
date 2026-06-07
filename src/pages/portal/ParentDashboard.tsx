@@ -461,17 +461,17 @@ export default function ParentDashboard() {
         <main className="max-w-5xl mx-auto px-4 sm:px-6 mt-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full grid grid-cols-4 sm:grid-cols-8 h-auto bg-muted/50 p-1 gap-0.5">
-              <TabsTrigger value="home" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><Home className="w-3.5 h-3.5" /> Home</TabsTrigger>
-              <TabsTrigger value="inbox" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5 relative">
-                <Inbox className="w-3.5 h-3.5" /> Inbox
-                {unreadCount > 0 && <span className="absolute top-0.5 right-0.5 sm:static bg-destructive text-destructive-foreground rounded-full text-[9px] px-1.5 leading-4 min-w-[16px] text-center font-bold">{unreadCount}</span>}
+              <TabsTrigger value="home" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-primary data-[state=active]:to-primary/80 data-[state=active]:text-primary-foreground"><Home className="w-5 h-5 sm:w-4 sm:h-4" /> Home</TabsTrigger>
+              <TabsTrigger value="inbox" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 relative data-[state=active]:bg-gradient-to-br data-[state=active]:from-secondary data-[state=active]:to-secondary/70 data-[state=active]:text-secondary-foreground">
+                <Inbox className="w-5 h-5 sm:w-4 sm:h-4" /> Inbox
+                {unreadCount > 0 && <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 bg-destructive text-destructive-foreground rounded-full text-[9px] px-1.5 leading-4 min-w-[16px] text-center font-bold animate-pulse">{unreadCount}</span>}
               </TabsTrigger>
-              <TabsTrigger value="homework" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><BookOpen className="w-3.5 h-3.5" /> HW</TabsTrigger>
-              <TabsTrigger value="timetable" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><CalendarIcon className="w-3.5 h-3.5" /> Exams</TabsTrigger>
-              <TabsTrigger value="results" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><BarChart3 className="w-3.5 h-3.5" /> Results</TabsTrigger>
-              <TabsTrigger value="attendance" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Att.</TabsTrigger>
-              <TabsTrigger value="fees" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><CreditCard className="w-3.5 h-3.5" /> Fees</TabsTrigger>
-              <TabsTrigger value="more" className="text-[10px] sm:text-xs py-2 flex-col sm:flex-row gap-1 sm:gap-1.5"><Settings className="w-3.5 h-3.5" /> More</TabsTrigger>
+              <TabsTrigger value="homework" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-info data-[state=active]:to-info/70 data-[state=active]:text-info-foreground"><BookOpen className="w-5 h-5 sm:w-4 sm:h-4" /> HW</TabsTrigger>
+              <TabsTrigger value="timetable" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-purple-600 data-[state=active]:to-purple-500 data-[state=active]:text-white"><CalendarIcon className="w-5 h-5 sm:w-4 sm:h-4" /> Exams</TabsTrigger>
+              <TabsTrigger value="results" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-500 data-[state=active]:text-white"><BarChart3 className="w-5 h-5 sm:w-4 sm:h-4" /> Results</TabsTrigger>
+              <TabsTrigger value="attendance" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-success data-[state=active]:to-success/70 data-[state=active]:text-success-foreground"><CheckCircle2 className="w-5 h-5 sm:w-4 sm:h-4" /> Att.</TabsTrigger>
+              <TabsTrigger value="fees" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white"><CreditCard className="w-5 h-5 sm:w-4 sm:h-4" /> Fees</TabsTrigger>
+              <TabsTrigger value="more" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-slate-700 data-[state=active]:to-slate-600 data-[state=active]:text-white"><Settings className="w-5 h-5 sm:w-4 sm:h-4" /> More</TabsTrigger>
             </TabsList>
 
 
@@ -590,9 +590,28 @@ export default function ParentDashboard() {
             <TabsContent value="inbox" className="space-y-3 mt-5">
               <Card className="animate-fade-in">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-display flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-2"><Inbox className="w-4 h-4 text-primary" /> Notices Inbox</span>
-                    <Badge variant="outline" className="text-[10px]">{unreadCount} unread</Badge>
+                  <CardTitle className="text-sm font-display flex items-center justify-between gap-2 flex-wrap">
+                    <span className="flex items-center gap-2"><Inbox className="w-5 h-5 text-primary" /> Notices Inbox</span>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">{unreadCount} unread</Badge>
+                      <Button
+                        size="sm"
+                        variant={unreadOnly ? "default" : "outline"}
+                        className="h-7 text-xs gap-1.5"
+                        onClick={() => setUnreadOnly((v) => !v)}
+                      >
+                        <Mail className="w-3.5 h-3.5" /> {unreadOnly ? "Showing unread" : "Unread only"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1.5"
+                        onClick={markAllNoticesRead}
+                        disabled={unreadCount === 0}
+                      >
+                        <MailOpen className="w-3.5 h-3.5" /> Mark all read
+                      </Button>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -605,15 +624,15 @@ export default function ParentDashboard() {
                       <label className="text-[10px] uppercase text-muted-foreground tracking-wider">To</label>
                       <Input type="date" value={noticeFilterTo} onChange={(e) => setNoticeFilterTo(e.target.value)} className="h-8 text-xs mt-0.5" />
                     </div>
-                    {(noticeFilterFrom || noticeFilterTo) && (
-                      <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setNoticeFilterFrom(""); setNoticeFilterTo(""); }}>Clear</Button>
+                    {(noticeFilterFrom || noticeFilterTo || unreadOnly) && (
+                      <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setNoticeFilterFrom(""); setNoticeFilterTo(""); setUnreadOnly(false); }}>Clear</Button>
                     )}
                   </div>
 
                   {filteredNotices.length === 0 ? (
                     <div className="text-center py-10 text-muted-foreground text-sm">
                       <Inbox className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                      No notices match the filters.
+                      {unreadOnly ? "No unread notices 🎉" : "No notices match the filters."}
                     </div>
                   ) : filteredNotices.map((n) => {
                     const isRead = readNoticeIds.has(n.id);
