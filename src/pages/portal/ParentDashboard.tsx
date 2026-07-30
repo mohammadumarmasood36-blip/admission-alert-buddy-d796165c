@@ -504,12 +504,90 @@ export default function ParentDashboard() {
               <TabsTrigger value="results" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-500 data-[state=active]:text-white"><BarChart3 className="w-5 h-5 sm:w-4 sm:h-4" /> Results</TabsTrigger>
               <TabsTrigger value="attendance" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-success data-[state=active]:to-success/70 data-[state=active]:text-success-foreground"><CheckCircle2 className="w-5 h-5 sm:w-4 sm:h-4" /> Att.</TabsTrigger>
               <TabsTrigger value="fees" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white"><CreditCard className="w-5 h-5 sm:w-4 sm:h-4" /> Fees</TabsTrigger>
-              <TabsTrigger value="more" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-slate-700 data-[state=active]:to-slate-600 data-[state=active]:text-white"><Settings className="w-5 h-5 sm:w-4 sm:h-4" /> More</TabsTrigger>
+              <TabsTrigger value="more" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-slate-700 data-[state=active]:to-slate-600 data-[state=active]:text-white"><User className="w-5 h-5 sm:w-4 sm:h-4" /> Profile</TabsTrigger>
             </TabsList>
 
 
             {/* ===== HOME ===== */}
             <TabsContent value="home" className="space-y-4 mt-5">
+              {/* Frequent Activities */}
+              <Card className="animate-fade-in overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-display flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-secondary" /> Frequent Activities
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-4 gap-3">
+                    {[
+                      { label: "Fee", icon: Wallet, tab: "fees", tint: "from-emerald-500 to-emerald-400", badge: feeBalance > 0 ? "!" : "" },
+                      { label: "Homework", icon: NotebookPen, tab: "homework", tint: "from-sky-500 to-sky-400", badge: pendingHomework.length ? String(pendingHomework.length) : "" },
+                      { label: "Messages", icon: Inbox, tab: "inbox", tint: "from-violet-500 to-violet-400", badge: unreadCount ? String(unreadCount) : "" },
+                      { label: "Attendance", icon: CheckCircle2, tab: "attendance", tint: "from-teal-500 to-teal-400", badge: "" },
+                      { label: "Exams", icon: ClipboardList, tab: "timetable", tint: "from-orange-500 to-amber-400", badge: upcomingExams.length ? String(upcomingExams.length) : "" },
+                      { label: "Results", icon: BarChart3, tab: "results", tint: "from-rose-500 to-pink-400", badge: "" },
+                      { label: "Notices", icon: Newspaper, tab: "inbox", tint: "from-indigo-500 to-blue-400", badge: "" },
+                      { label: "Profile", icon: User, tab: "more", tint: "from-slate-600 to-slate-500", badge: "" },
+                    ].map((a, i) => (
+                      <button
+                        key={a.label}
+                        onClick={() => setActiveTab(a.tab)}
+                        className="flex flex-col items-center gap-1.5 group animate-fade-in"
+                        style={{ animationDelay: `${i * 40}ms` }}
+                      >
+                        <span className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${a.tint} flex items-center justify-center shadow-md group-hover:scale-105 group-active:scale-95 transition-transform`}>
+                          <a.icon className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                          {a.badge && (
+                            <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center shadow">
+                              {a.badge}
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-[11px] font-medium text-center leading-tight">{a.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* My Attendance — month counters */}
+              <Card className="animate-fade-in">
+                <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-sm font-display flex items-center gap-2">
+                    <CalendarIcon className="w-4 h-4 text-primary" /> My Attendance
+                  </CardTitle>
+                  <div className="flex items-center gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => shiftMonth(-1)}><ChevronLeft className="w-4 h-4" /></Button>
+                    <span className="text-xs font-semibold w-24 text-center">{calMonth.toLocaleDateString("en-IN", { month: "short", year: "numeric" })}</span>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => shiftMonth(1)}><ChevronRight className="w-4 h-4" /></Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[
+                      { label: "Present", value: monthAttStats.present, ring: "border-emerald-500 text-emerald-600 bg-emerald-500/10" },
+                      { label: "Absent", value: monthAttStats.absent, ring: "border-rose-500 text-rose-600 bg-rose-500/10" },
+                      { label: "Half day", value: monthAttStats.halfDay, ring: "border-amber-500 text-amber-600 bg-amber-500/10" },
+                      { label: "Leave", value: monthAttStats.leave, ring: "border-sky-500 text-sky-600 bg-sky-500/10" },
+                      { label: "Holiday", value: monthAttStats.holiday, ring: "border-violet-500 text-violet-600 bg-violet-500/10" },
+                    ].map((s) => (
+                      <div key={s.label} className="flex flex-col items-center gap-1.5">
+                        <span className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 flex items-center justify-center font-display font-bold text-lg ${s.ring}`}>
+                          {s.value}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground text-center leading-tight">{s.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-center mt-3">
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setActiveTab("attendance")}>
+                      <CalendarIcon className="w-3.5 h-3.5" /> View calendar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+
               {/* Profile Widget */}
               <Card className="animate-fade-in overflow-hidden border-secondary/30 bg-gradient-to-br from-primary/5 via-card to-secondary/5">
                 <CardContent className="pt-5 pb-4">
