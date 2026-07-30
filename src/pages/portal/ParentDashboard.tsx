@@ -15,6 +15,7 @@ import {
   Bell, Calendar as CalendarIcon, School, User, BellRing, Download,
   CheckCircle2, Clock, Sparkles, TrendingUp, FileText, ChevronRight,
   Home, Inbox, Mail, MailOpen, Paperclip, AlarmClock, Phone, Users, Settings,
+  Wallet, Bus, Newspaper, NotebookPen, PartyPopper, ChevronLeft, IdCard, Droplet, Cake, MapPin,
 } from "lucide-react";
 import ChangePassword from "@/components/portal/ChangePassword";
 import { useNavigate } from "react-router-dom";
@@ -183,6 +184,28 @@ export default function ParentDashboard() {
     () => childAttendance.filter((a) => a.status !== "present").map((a) => new Date(a.date)),
     [childAttendance]
   );
+
+  // Month-wise attendance breakdown (reference-style counters)
+  const monthAttStats = useMemo(() => {
+    const m = calMonth.getMonth(), y = calMonth.getFullYear();
+    const recs = childAttendance.filter((a) => {
+      const d = new Date(a.date);
+      return d.getMonth() === m && d.getFullYear() === y;
+    });
+    const count = (...keys: string[]) =>
+      recs.filter((r) => keys.includes(String(r.status || "").toLowerCase().replace(/[\s_-]/g, ""))).length;
+    return {
+      present: count("present"),
+      absent: count("absent"),
+      halfDay: count("halfday"),
+      leave: count("leave", "onleave"),
+      holiday: count("holiday"),
+    };
+  }, [childAttendance, calMonth]);
+
+  const shiftMonth = (delta: number) =>
+    setCalMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+
 
   const upcomingExams = useMemo(() => {
     if (!child) return [];
@@ -481,12 +504,90 @@ export default function ParentDashboard() {
               <TabsTrigger value="results" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-500 data-[state=active]:text-white"><BarChart3 className="w-5 h-5 sm:w-4 sm:h-4" /> Results</TabsTrigger>
               <TabsTrigger value="attendance" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-success data-[state=active]:to-success/70 data-[state=active]:text-success-foreground"><CheckCircle2 className="w-5 h-5 sm:w-4 sm:h-4" /> Att.</TabsTrigger>
               <TabsTrigger value="fees" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white"><CreditCard className="w-5 h-5 sm:w-4 sm:h-4" /> Fees</TabsTrigger>
-              <TabsTrigger value="more" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-slate-700 data-[state=active]:to-slate-600 data-[state=active]:text-white"><Settings className="w-5 h-5 sm:w-4 sm:h-4" /> More</TabsTrigger>
+              <TabsTrigger value="more" className="text-[10px] sm:text-xs py-2.5 flex-col sm:flex-row gap-1 sm:gap-1.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-slate-700 data-[state=active]:to-slate-600 data-[state=active]:text-white"><User className="w-5 h-5 sm:w-4 sm:h-4" /> Profile</TabsTrigger>
             </TabsList>
 
 
             {/* ===== HOME ===== */}
             <TabsContent value="home" className="space-y-4 mt-5">
+              {/* Frequent Activities */}
+              <Card className="animate-fade-in overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-display flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-secondary" /> Frequent Activities
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-4 gap-3">
+                    {[
+                      { label: "Fee", icon: Wallet, tab: "fees", tint: "from-emerald-500 to-emerald-400", badge: feeBalance > 0 ? "!" : "" },
+                      { label: "Homework", icon: NotebookPen, tab: "homework", tint: "from-sky-500 to-sky-400", badge: pendingHomework.length ? String(pendingHomework.length) : "" },
+                      { label: "Messages", icon: Inbox, tab: "inbox", tint: "from-violet-500 to-violet-400", badge: unreadCount ? String(unreadCount) : "" },
+                      { label: "Attendance", icon: CheckCircle2, tab: "attendance", tint: "from-teal-500 to-teal-400", badge: "" },
+                      { label: "Exams", icon: ClipboardList, tab: "timetable", tint: "from-orange-500 to-amber-400", badge: upcomingExams.length ? String(upcomingExams.length) : "" },
+                      { label: "Results", icon: BarChart3, tab: "results", tint: "from-rose-500 to-pink-400", badge: "" },
+                      { label: "Notices", icon: Newspaper, tab: "inbox", tint: "from-indigo-500 to-blue-400", badge: "" },
+                      { label: "Profile", icon: User, tab: "more", tint: "from-slate-600 to-slate-500", badge: "" },
+                    ].map((a, i) => (
+                      <button
+                        key={a.label}
+                        onClick={() => setActiveTab(a.tab)}
+                        className="flex flex-col items-center gap-1.5 group animate-fade-in"
+                        style={{ animationDelay: `${i * 40}ms` }}
+                      >
+                        <span className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${a.tint} flex items-center justify-center shadow-md group-hover:scale-105 group-active:scale-95 transition-transform`}>
+                          <a.icon className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                          {a.badge && (
+                            <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center shadow">
+                              {a.badge}
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-[11px] font-medium text-center leading-tight">{a.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* My Attendance — month counters */}
+              <Card className="animate-fade-in">
+                <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-sm font-display flex items-center gap-2">
+                    <CalendarIcon className="w-4 h-4 text-primary" /> My Attendance
+                  </CardTitle>
+                  <div className="flex items-center gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => shiftMonth(-1)}><ChevronLeft className="w-4 h-4" /></Button>
+                    <span className="text-xs font-semibold w-24 text-center">{calMonth.toLocaleDateString("en-IN", { month: "short", year: "numeric" })}</span>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => shiftMonth(1)}><ChevronRight className="w-4 h-4" /></Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[
+                      { label: "Present", value: monthAttStats.present, ring: "border-emerald-500 text-emerald-600 bg-emerald-500/10" },
+                      { label: "Absent", value: monthAttStats.absent, ring: "border-rose-500 text-rose-600 bg-rose-500/10" },
+                      { label: "Half day", value: monthAttStats.halfDay, ring: "border-amber-500 text-amber-600 bg-amber-500/10" },
+                      { label: "Leave", value: monthAttStats.leave, ring: "border-sky-500 text-sky-600 bg-sky-500/10" },
+                      { label: "Holiday", value: monthAttStats.holiday, ring: "border-violet-500 text-violet-600 bg-violet-500/10" },
+                    ].map((s) => (
+                      <div key={s.label} className="flex flex-col items-center gap-1.5">
+                        <span className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 flex items-center justify-center font-display font-bold text-lg ${s.ring}`}>
+                          {s.value}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground text-center leading-tight">{s.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-center mt-3">
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setActiveTab("attendance")}>
+                      <CalendarIcon className="w-3.5 h-3.5" /> View calendar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+
               {/* Profile Widget */}
               <Card className="animate-fade-in overflow-hidden border-secondary/30 bg-gradient-to-br from-primary/5 via-card to-secondary/5">
                 <CardContent className="pt-5 pb-4">
@@ -981,24 +1082,100 @@ export default function ParentDashboard() {
 
             {/* ===== MORE ===== */}
             <TabsContent value="more" className="space-y-4 mt-5">
-              <Card className="animate-fade-in">
-                <CardHeader><CardTitle className="font-display flex items-center gap-2 text-base"><User className="w-5 h-5 text-primary" /> Student Information</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Father</p><p className="font-medium">{child.fatherName || "—"}</p></div>
-                    <div><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Father Mobile</p><p className="font-medium">{child.fatherMobile || "—"}</p></div>
-                    <div><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Mother</p><p className="font-medium">{child.motherName || "—"}</p></div>
-                    <div><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Mother Mobile</p><p className="font-medium">{child.motherMobile || "—"}</p></div>
-                    <div className="col-span-2"><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Address</p><p className="font-medium">{child.address || "—"}</p></div>
-                    {child.transportFacility && (
-                      <>
-                        <div><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Bus</p><p className="font-medium">{child.busNumber || "—"}</p></div>
-                        <div><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Pickup</p><p className="font-medium">{child.pickupLocation || "—"}</p></div>
-                      </>
+              {/* Avatar header */}
+              <Card className="animate-fade-in overflow-hidden border-secondary/30">
+                <div className="h-20 bg-gradient-to-r from-primary via-primary/90 to-secondary/70" />
+                <CardContent className="pt-0 pb-5">
+                  <div className="flex flex-col items-center -mt-10">
+                    {child.photoFile ? (
+                      <img src={child.photoFile} alt={child.name} className="w-20 h-20 rounded-full object-cover ring-4 ring-card shadow-lg" />
+                    ) : (
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center text-2xl font-bold ring-4 ring-card shadow-lg">
+                        {child.name.charAt(0)}
+                      </div>
                     )}
+                    <h3 className="font-display font-bold text-lg mt-2">{child.name}</h3>
+                    <p className="text-xs text-muted-foreground">Class {child.className} • Section {child.section}</p>
+                  </div>
+
+                  {/* Parent avatars */}
+                  <div className="grid grid-cols-2 gap-3 mt-5">
+                    {[
+                      { role: "Father", name: child.fatherName, mobile: child.fatherMobile, tint: "from-sky-500 to-blue-500" },
+                      { role: "Mother", name: child.motherName, mobile: child.motherMobile, tint: "from-pink-500 to-rose-500" },
+                    ].map((p) => (
+                      <div key={p.role} className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-muted/40 border border-border/50">
+                        <span className={`w-14 h-14 rounded-full bg-gradient-to-br ${p.tint} flex items-center justify-center text-white font-bold text-lg shadow`}>
+                          {(p.name || p.role).charAt(0)}
+                        </span>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{p.role}</p>
+                        <p className="text-sm font-semibold text-center leading-tight">{p.name || "—"}</p>
+                        {p.mobile && (
+                          <a href={`tel:${p.mobile}`} className="text-[11px] text-primary flex items-center gap-1 font-medium">
+                            <Phone className="w-3 h-3" /> {p.mobile}
+                          </a>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Personal Information */}
+              <Card className="animate-fade-in">
+                <CardHeader className="pb-2"><CardTitle className="font-display flex items-center gap-2 text-base"><IdCard className="w-5 h-5 text-primary" /> Personal Information</CardTitle></CardHeader>
+                <CardContent className="divide-y divide-border/60">
+                  {[
+                    { icon: User, label: "Student Name", value: child.name },
+                    { icon: IdCard, label: "Admission No", value: child.admissionNumber },
+                    { icon: GraduationCap, label: "Class / Section", value: `${child.className} - ${child.section}` },
+                    { icon: Cake, label: "Date of Birth", value: (child as any).dob ? new Date((child as any).dob).toLocaleDateString("en-IN") : "—" },
+                    { icon: Users, label: "Gender", value: (child as any).gender || "—" },
+                    { icon: Droplet, label: "Blood Group", value: (child as any).bloodGroup || "—" },
+                    { icon: MapPin, label: "Address", value: child.address || "—" },
+                    ...(child.transportFacility
+                      ? [
+                          { icon: Bus, label: "Bus Number", value: child.busNumber || "—" },
+                          { icon: MapPin, label: "Pickup Point", value: child.pickupLocation || "—" },
+                        ]
+                      : []),
+                  ].map((row) => (
+                    <div key={row.label} className="flex items-start gap-3 py-2.5">
+                      <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <row.icon className="w-4 h-4 text-primary" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{row.label}</p>
+                        <p className="text-sm font-medium break-words">{row.value || "—"}</p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Parent Information */}
+              <Card className="animate-fade-in">
+                <CardHeader className="pb-2"><CardTitle className="font-display flex items-center gap-2 text-base"><Users className="w-5 h-5 text-secondary" /> Parent Information</CardTitle></CardHeader>
+                <CardContent className="divide-y divide-border/60">
+                  {[
+                    { icon: User, label: "Father's Name", value: child.fatherName || "—" },
+                    { icon: Phone, label: "Father's Mobile", value: child.fatherMobile || "—" },
+                    { icon: User, label: "Mother's Name", value: child.motherName || "—" },
+                    { icon: Phone, label: "Mother's Mobile", value: child.motherMobile || "—" },
+                  ].map((row, i) => (
+                    <div key={i} className="flex items-start gap-3 py-2.5">
+                      <span className="w-8 h-8 rounded-lg bg-secondary/15 flex items-center justify-center shrink-0">
+                        <row.icon className="w-4 h-4 text-secondary" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{row.label}</p>
+                        <p className="text-sm font-medium break-words">{row.value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
 
               <Card className="animate-fade-in">
                 <CardHeader><CardTitle className="font-display flex items-center gap-2 text-base"><Bell className="w-5 h-5 text-secondary" /> All Notices</CardTitle></CardHeader>
