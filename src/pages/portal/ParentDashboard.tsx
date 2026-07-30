@@ -15,6 +15,7 @@ import {
   Bell, Calendar as CalendarIcon, School, User, BellRing, Download,
   CheckCircle2, Clock, Sparkles, TrendingUp, FileText, ChevronRight,
   Home, Inbox, Mail, MailOpen, Paperclip, AlarmClock, Phone, Users, Settings,
+  Wallet, Bus, Newspaper, NotebookPen, PartyPopper, ChevronLeft, IdCard, Droplet, Cake, MapPin,
 } from "lucide-react";
 import ChangePassword from "@/components/portal/ChangePassword";
 import { useNavigate } from "react-router-dom";
