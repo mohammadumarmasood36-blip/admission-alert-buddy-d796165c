@@ -1082,24 +1082,100 @@ export default function ParentDashboard() {
 
             {/* ===== MORE ===== */}
             <TabsContent value="more" className="space-y-4 mt-5">
-              <Card className="animate-fade-in">
-                <CardHeader><CardTitle className="font-display flex items-center gap-2 text-base"><User className="w-5 h-5 text-primary" /> Student Information</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Father</p><p className="font-medium">{child.fatherName || "—"}</p></div>
-                    <div><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Father Mobile</p><p className="font-medium">{child.fatherMobile || "—"}</p></div>
-                    <div><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Mother</p><p className="font-medium">{child.motherName || "—"}</p></div>
-                    <div><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Mother Mobile</p><p className="font-medium">{child.motherMobile || "—"}</p></div>
-                    <div className="col-span-2"><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Address</p><p className="font-medium">{child.address || "—"}</p></div>
-                    {child.transportFacility && (
-                      <>
-                        <div><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Bus</p><p className="font-medium">{child.busNumber || "—"}</p></div>
-                        <div><p className="text-[11px] uppercase tracking-wider text-muted-foreground">Pickup</p><p className="font-medium">{child.pickupLocation || "—"}</p></div>
-                      </>
+              {/* Avatar header */}
+              <Card className="animate-fade-in overflow-hidden border-secondary/30">
+                <div className="h-20 bg-gradient-to-r from-primary via-primary/90 to-secondary/70" />
+                <CardContent className="pt-0 pb-5">
+                  <div className="flex flex-col items-center -mt-10">
+                    {child.photoFile ? (
+                      <img src={child.photoFile} alt={child.name} className="w-20 h-20 rounded-full object-cover ring-4 ring-card shadow-lg" />
+                    ) : (
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center text-2xl font-bold ring-4 ring-card shadow-lg">
+                        {child.name.charAt(0)}
+                      </div>
                     )}
+                    <h3 className="font-display font-bold text-lg mt-2">{child.name}</h3>
+                    <p className="text-xs text-muted-foreground">Class {child.className} • Section {child.section}</p>
+                  </div>
+
+                  {/* Parent avatars */}
+                  <div className="grid grid-cols-2 gap-3 mt-5">
+                    {[
+                      { role: "Father", name: child.fatherName, mobile: child.fatherMobile, tint: "from-sky-500 to-blue-500" },
+                      { role: "Mother", name: child.motherName, mobile: child.motherMobile, tint: "from-pink-500 to-rose-500" },
+                    ].map((p) => (
+                      <div key={p.role} className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-muted/40 border border-border/50">
+                        <span className={`w-14 h-14 rounded-full bg-gradient-to-br ${p.tint} flex items-center justify-center text-white font-bold text-lg shadow`}>
+                          {(p.name || p.role).charAt(0)}
+                        </span>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{p.role}</p>
+                        <p className="text-sm font-semibold text-center leading-tight">{p.name || "—"}</p>
+                        {p.mobile && (
+                          <a href={`tel:${p.mobile}`} className="text-[11px] text-primary flex items-center gap-1 font-medium">
+                            <Phone className="w-3 h-3" /> {p.mobile}
+                          </a>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Personal Information */}
+              <Card className="animate-fade-in">
+                <CardHeader className="pb-2"><CardTitle className="font-display flex items-center gap-2 text-base"><IdCard className="w-5 h-5 text-primary" /> Personal Information</CardTitle></CardHeader>
+                <CardContent className="divide-y divide-border/60">
+                  {[
+                    { icon: User, label: "Student Name", value: child.name },
+                    { icon: IdCard, label: "Admission No", value: child.admissionNumber },
+                    { icon: GraduationCap, label: "Class / Section", value: `${child.className} - ${child.section}` },
+                    { icon: Cake, label: "Date of Birth", value: (child as any).dob ? new Date((child as any).dob).toLocaleDateString("en-IN") : "—" },
+                    { icon: Users, label: "Gender", value: (child as any).gender || "—" },
+                    { icon: Droplet, label: "Blood Group", value: (child as any).bloodGroup || "—" },
+                    { icon: MapPin, label: "Address", value: child.address || "—" },
+                    ...(child.transportFacility
+                      ? [
+                          { icon: Bus, label: "Bus Number", value: child.busNumber || "—" },
+                          { icon: MapPin, label: "Pickup Point", value: child.pickupLocation || "—" },
+                        ]
+                      : []),
+                  ].map((row) => (
+                    <div key={row.label} className="flex items-start gap-3 py-2.5">
+                      <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <row.icon className="w-4 h-4 text-primary" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{row.label}</p>
+                        <p className="text-sm font-medium break-words">{row.value || "—"}</p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Parent Information */}
+              <Card className="animate-fade-in">
+                <CardHeader className="pb-2"><CardTitle className="font-display flex items-center gap-2 text-base"><Users className="w-5 h-5 text-secondary" /> Parent Information</CardTitle></CardHeader>
+                <CardContent className="divide-y divide-border/60">
+                  {[
+                    { icon: User, label: "Father's Name", value: child.fatherName || "—" },
+                    { icon: Phone, label: "Father's Mobile", value: child.fatherMobile || "—" },
+                    { icon: User, label: "Mother's Name", value: child.motherName || "—" },
+                    { icon: Phone, label: "Mother's Mobile", value: child.motherMobile || "—" },
+                  ].map((row, i) => (
+                    <div key={i} className="flex items-start gap-3 py-2.5">
+                      <span className="w-8 h-8 rounded-lg bg-secondary/15 flex items-center justify-center shrink-0">
+                        <row.icon className="w-4 h-4 text-secondary" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{row.label}</p>
+                        <p className="text-sm font-medium break-words">{row.value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
 
               <Card className="animate-fade-in">
                 <CardHeader><CardTitle className="font-display flex items-center gap-2 text-base"><Bell className="w-5 h-5 text-secondary" /> All Notices</CardTitle></CardHeader>
