@@ -184,6 +184,28 @@ export default function ParentDashboard() {
     [childAttendance]
   );
 
+  // Month-wise attendance breakdown (reference-style counters)
+  const monthAttStats = useMemo(() => {
+    const m = calMonth.getMonth(), y = calMonth.getFullYear();
+    const recs = childAttendance.filter((a) => {
+      const d = new Date(a.date);
+      return d.getMonth() === m && d.getFullYear() === y;
+    });
+    const count = (...keys: string[]) =>
+      recs.filter((r) => keys.includes(String(r.status || "").toLowerCase().replace(/[\s_-]/g, ""))).length;
+    return {
+      present: count("present"),
+      absent: count("absent"),
+      halfDay: count("halfday"),
+      leave: count("leave", "onleave"),
+      holiday: count("holiday"),
+    };
+  }, [childAttendance, calMonth]);
+
+  const shiftMonth = (delta: number) =>
+    setCalMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+
+
   const upcomingExams = useMemo(() => {
     if (!child) return [];
     const today = new Date(); today.setHours(0, 0, 0, 0);
